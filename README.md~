@@ -1,4 +1,2 @@
-# This project has moved to <a href="https://github.com/ruboto/ruboto">https://github.com/ruboto/ruboto</a>
-
-https://github.com/ruboto/ruboto-core
+# This project has moved to https://github.com/ruboto/ruboto-core
 

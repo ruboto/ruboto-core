@@ -1,1 +1,2 @@
-# This project has moved to https://github.com/ruboto/ruboto
+# This project contains the common parts shared by Ruboto apps.
+

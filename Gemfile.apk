@@ -1,0 +1,3 @@
+source :rubygems
+
+gem 'activerecord-jdbc-adapter'

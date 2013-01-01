@@ -18,6 +18,15 @@ adb_version_str = `adb version`
 adb_path = `which adb`
 ENV['ANDROID_HOME'] ||= File.dirname(File.dirname(adb_path)) if $? == 0
 
+dx_filename = "#{ENV['ANDROID_HOME']}/platform-tools/dx"
+old_dx_content = File.read(dx_filename)
+new_dx_content = old_dx_content.dup
+if new_dx_content =~ /^defaultMx="-Xmx(\d+)(M|G)"/ &&
+    ($1.to_i * 1024 ** {'M' => 2, 'G' => 3, 'T' => 4}[$2]) < 3*1024**3
+  new_dx_content.sub(/^defaultMx="-Xmx\d+(M|G)"/, 'defaultMx="-Xmx3G"')
+  File.open(dx_filename, 'w') { |f| f << new_dx_content }
+end
+
 def manifest() @manifest ||= REXML::Document.new(File.read(MANIFEST_FILE)) end
 def package() manifest.root.attribute('package') end
 def build_project_name() @build_project_name ||= REXML::Document.new(File.read('build.xml')).elements['project'].attribute(:name).value end
@@ -405,11 +414,6 @@ def build_apk(t, release)
     return false if changed_prereqs.empty?
     changed_prereqs.each { |f| puts "#{f} changed." }
     puts "Forcing rebuild of #{apk_file}."
-  else
-    dx_filename = "#{ANDROID_HOME}/platform-tools/dx"
-    old_dx_content = File.read(dx_filename)
-    new_dx_content = old_dx_content.dup.sub(/^defaultMx="-Xmx1024M/, 'defaultMx="-Xmx3G')
-    File.open(dx_filename, 'w'){|f| f << new_dx_content} if new_dx_content != old_dx_content
   end
   if release
     sh "#{ANT_CMD} release"

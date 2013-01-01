@@ -1,2 +1,6 @@
-# Write your own rake tasks here.
-# You can find the Ruboto rake tasks in rakelib/ruboto.rake
+task :release do
+  FileUtils.cp 'bin/RubotoCore-release.apk', 'dist/RubotoCore-release.apk'
+  sh "git add dist/RubotoCore-release.apk"
+  sh "git commit -m '* Added new release to dist directory.'"
+  sh "git push"
+end

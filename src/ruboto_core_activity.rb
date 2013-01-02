@@ -8,9 +8,9 @@ class RubotoCoreActivity
     set_title 'Ruboto - Ruby on Android'
 
     self.content_view =
-        linear_layout :orientation => :vertical, :background_color => 0x7FB90706 do
+        linear_layout :orientation => :vertical, :background_color => 0xFFB90706 do
           text_view :text => 'Welcome to Ruboto', :width => :match_parent,
-                    :gravity => :center, :text_size => 48.0, :background_color => 0x7F24456A
+                    :gravity => :center, :text_size => 48.0, :background_color => 0xFF24456A
           text_view :text => 'This app contains the common parts of Ruboto apps.
 You have probably come here after installing a Ruboto based app.
 You do not have to run this app to use Ruboto.  It will automatically be

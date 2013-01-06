@@ -9,7 +9,7 @@ class RubotoCoreActivity
 
     self.content_view =
         linear_layout :orientation => :vertical, :background_color => 0xFFB90706 do
-          text_view :text => 'Welcome to Ruboto', :width => :match_parent,
+          text_view :text => 'Welcome to Ruboto', :width => :match_parent, :id => 42,
                     :gravity => :center, :text_size => 48.0, :background_color => 0xFF24456A
           text_view :text => 'This app contains the common parts of Ruboto apps.
 You have probably come here after installing a Ruboto based app.

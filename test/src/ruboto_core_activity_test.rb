@@ -11,11 +11,5 @@ setup do |activity|
 end
 
 test('initial setup') do |activity|
-  assert_equal "What hath Matz wrought?", @text_view.text
-end
-
-test('button changes text') do |activity|
-  button = activity.findViewById(43)
-  button.performClick
-  assert_equal "What hath Matz wrought!", @text_view.text
+  assert_equal 'Welcome to Ruboto', @text_view.text
 end

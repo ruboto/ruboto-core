@@ -1,6 +1,27 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
-    <string name='app_name'>
-        Ruboto Core
-    </string>
+  <string name='app_name'>
+    Ruboto Core
+  </string>
+  <string name='app_title'>
+    Ruboto - Ruby on Android
+  </string>
+  <string name='title'>
+    Welcome to Ruboto
+  </string>
+  <string name='content'>
+    This app contains the common parts of Ruboto apps.
+    You have probably come here after installing a Ruboto based app.
+    You do not have to run this app to use Ruboto.  It will automatically be
+    utilized by Ruboto apps that do not already include JRuby.  To continue,
+    just select "Exit" and navigate to the app you installed.  It will start normally
+    from now on.
+  </string>
+  <string name='homepage'>
+    Ruboto Home Page
+  </string>
+  <string name='exit'>
+    Exit
+  </string>
+
 </resources>

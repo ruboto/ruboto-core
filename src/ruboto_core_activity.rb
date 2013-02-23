@@ -3,24 +3,19 @@ require 'ruboto/widget'
 ruboto_import_widgets :Button, :LinearLayout, :TextView
 
 class RubotoCoreActivity
+  import org.ruboto.core.R
   def on_create(bundle)
     super
-    set_title 'Ruboto - Ruby on Android'
+    set_title R.string.app_title
 
     self.content_view =
         linear_layout :orientation => :vertical, :background_color => 0xFFB90706 do
-          text_view :text => 'Welcome to Ruboto', :width => :match_parent, :id => 42,
+          text_view :text => getString(R.string.title), :width => :match_parent, :id => 42,
                     :gravity => :center, :text_size => 48.0, :background_color => 0xFF24456A
-          text_view :text => 'This app contains the common parts of Ruboto apps.
-You have probably come here after installing a Ruboto based app.
-You do not have to run this app to use Ruboto.  It will automatically be
-utilized by Ruboto apps that do not already include JRuby.  To continue,
-just select "Exit" and navigate to the app you installed.  It will start normally
-from now on.
-'.gsub(/\n+/, '  '),
+          text_view :text => getString(R.string.content).gsub(/\n+/, '  '),
                     :width => :match_parent, :gravity => :center, :text_size => 24.0
-          button :text => 'Ruboto Home Page', :width => :match_parent, :on_click_listener => proc { go_home }
-          button :text => 'Exit', :width => :match_parent, :on_click_listener => proc { finish }
+          button :text => getString(R.string.homepage), :width => :match_parent, :on_click_listener => proc { go_home }
+          button :text => getString(R.string.exit), :width => :match_parent, :on_click_listener => proc { finish }
         end
   rescue
     puts "Exception creating activity: #{$!}"

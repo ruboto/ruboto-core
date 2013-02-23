@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<resources>
+  <string name='app_name'>
+    Ruboto Core
+  </string>
+  <string name='app_title'>
+    Ruboto - Ruby on Android
+  </string>
+  <string name='title'>
+    欢迎使用Ruboto
+  </string>
+  <string name='content'>
+    本程序包含了基于Ruboto的应用的通用组件。
+    您可能是在安装了一个基于Ruboto的应用之后看到了这个界面。您每次使用Ruboto时无需运行本程序，它将被相关程序自动加载。请选择页面下方的“退出”按钮，并直接打开您想运行的Ruboto应用。
+  </string>
+  <string name='homepage'>
+    Ruboto首页
+  </string>
+  <string name='exit'>
+    退出
+  </string>
+</resources>

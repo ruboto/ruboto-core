@@ -3,18 +3,19 @@ require 'ruboto/widget'
 ruboto_import_widgets :Button, :LinearLayout, :TextView
 
 class RubotoCoreActivity
+  import org.ruboto.core.R
   def on_create(bundle)
     super
     set_title R.string.app_title
 
     self.content_view =
         linear_layout :orientation => :vertical, :background_color => 0xFFB90706 do
-          text_view :text => R.string.title, :width => :match_parent, :id => 42,
+          text_view :text => getString(R.string.title), :width => :match_parent, :id => 42,
                     :gravity => :center, :text_size => 48.0, :background_color => 0xFF24456A
-          text_view :text => R.string.content.gsub(/\n+/, '  '),
+          text_view :text => getString(R.string.content).gsub(/\n+/, '  '),
                     :width => :match_parent, :gravity => :center, :text_size => 24.0
-          button :text => R.string.homepage, :width => :match_parent, :on_click_listener => proc { go_home }
-          button :text => R.string.exit, :width => :match_parent, :on_click_listener => proc { finish }
+          button :text => getString(R.string.homepage), :width => :match_parent, :on_click_listener => proc { go_home }
+          button :text => getString(R.string.exit), :width => :match_parent, :on_click_listener => proc { finish }
         end
   rescue
     puts "Exception creating activity: #{$!}"

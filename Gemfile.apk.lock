@@ -4,7 +4,7 @@ GEM
     activerecord-jdbc-adapter (1.2.2.1)
 
 PLATFORMS
-  ruby
+  java
 
 DEPENDENCIES
   activerecord-jdbc-adapter

@@ -3,8 +3,11 @@ require 'rubygems'
 require 'time'
 require 'rake/clean'
 require 'rexml/document'
+require 'timeout'
 
-ANT_CMD = (RbConfig::CONFIG['host_os'] =~ /mswin|mingw/i) ? "ant.bat" : "ant"
+ON_WINDOWS = (RbConfig::CONFIG['host_os'] =~ /mswin|mingw/i)
+
+ANT_CMD = ON_WINDOWS ? 'ant.bat' : 'ant'
 
 if `#{ANT_CMD} -version` !~ /version (\d+)\.(\d+)\.(\d+)/ || $1.to_i < 1 || ($1.to_i == 1 && $2.to_i < 8)
   puts "ANT version 1.8.0 or later required.  Version found: #{$1}.#{$2}.#{$3}"
@@ -12,48 +15,64 @@ if `#{ANT_CMD} -version` !~ /version (\d+)\.(\d+)\.(\d+)/ || $1.to_i < 1 || ($1.
 end
 
 adb_version_str = `adb version`
-(puts "Android SDK platform tools not in PATH (adb command not found).";exit 1) unless $? == 0
-(puts "Unrecognized adb version: #$1";exit 1) unless adb_version_str =~ /Android Debug Bridge version (\d+\.\d+\.\d+)/
-(puts "adb version 1.0.31 or later required.  Version found: #$1";exit 1) unless Gem::Version.new($1) >= Gem::Version.new('1.0.31')
-adb_path = `which adb`
-ENV['ANDROID_HOME'] ||= File.dirname(File.dirname(adb_path)) if $? == 0
+(puts 'Android SDK platform tools not in PATH (adb command not found).'; exit 1) unless $? == 0
+(puts "Unrecognized adb version: #$1"; exit 1) unless adb_version_str =~ /Android Debug Bridge version (\d+\.\d+\.\d+)/
+(puts "adb version 1.0.31 or later required.  Version found: #$1"; exit 1) unless Gem::Version.new($1) >= Gem::Version.new('1.0.31')
+unless ENV['ANDROID_HOME']
+  unless ON_WINDOWS
+    begin
+      adb_path = `which adb`
+      ENV['ANDROID_HOME'] = File.dirname(File.dirname(adb_path)) if $? == 0
+    rescue Errno::ENOENT
+      puts "Unable to detect adb location: #$!"
+    end
+  end
+end
+(puts 'You need to set the ANDROID_HOME environment variable.'; exit 1) unless ENV['ANDROID_HOME']
 
-dx_filename = "#{ENV['ANDROID_HOME']}/platform-tools/dx"
-old_dx_content = File.read(dx_filename)
-new_dx_content = old_dx_content.dup
-if new_dx_content =~ /^defaultMx="-Xmx(\d+)(M|G)"/ &&
-    ($1.to_i * 1024 ** {'M' => 2, 'G' => 3, 'T' => 4}[$2]) < 3*1024**3
-  new_dx_content.sub(/^defaultMx="-Xmx\d+(M|G)"/, 'defaultMx="-Xmx3G"')
-  File.open(dx_filename, 'w') { |f| f << new_dx_content }
+# FIXME(uwe):  On windows the file is called dx.bat
+dx_filename = File.join(ENV['ANDROID_HOME'], 'platform-tools', ON_WINDOWS ? 'dx.bat' : 'dx')
+unless File.exists? dx_filename
+  puts 'You need to install the Android SDK Platform-tools!'
+  exit 1
+end
+new_dx_content = File.read(dx_filename).dup
+# set defaultXmx=-Xmx1024M
+xmx_pattern = /^defaultMx="-Xmx(\d+)(M|m|G|g|T|t)"/
+if new_dx_content =~ xmx_pattern &&
+    ($1.to_i * 1024 ** {'M' => 2, 'G' => 3, 'T' => 4}[$2.upcase]) < 2560*1024**2
+  puts "Increasing max heap space from #$1#$2 to 2560M in #{dx_filename}"
+  new_dx_content.sub!(xmx_pattern, 'defaultMx="-Xmx2560M"')
+  File.open(dx_filename, 'w') { |f| f << new_dx_content } rescue puts "\n!!! Unable to increase dx heap size !!!\n\n"
 end
 
-def manifest() @manifest ||= REXML::Document.new(File.read(MANIFEST_FILE)) end
-def package() manifest.root.attribute('package') end
-def build_project_name() @build_project_name ||= REXML::Document.new(File.read('build.xml')).elements['project'].attribute(:name).value end
-def scripts_path() @sdcard_path ||= "/mnt/sdcard/Android/data/#{package}/files/scripts" end
-def app_files_path() @app_files_path ||= "/data/data/#{package}/files" end
+def manifest; @manifest ||= REXML::Document.new(File.read(MANIFEST_FILE)) end
+def package; manifest.root.attribute('package') end
+def build_project_name; @build_project_name ||= REXML::Document.new(File.read('build.xml')).elements['project'].attribute(:name).value end
+def scripts_path; @sdcard_path ||= "/mnt/sdcard/Android/data/#{package}/files/scripts" end
+def app_files_path; @app_files_path ||= "/data/data/#{package}/files" end
 
-PROJECT_DIR        = File.expand_path('..', File.dirname(__FILE__))
+PROJECT_DIR = File.expand_path('..', File.dirname(__FILE__))
 UPDATE_MARKER_FILE = File.join(PROJECT_DIR, 'bin', 'LAST_UPDATE')
-BUNDLE_JAR         = File.expand_path 'libs/bundle.jar'
-BUNDLE_PATH        = File.expand_path 'bin/bundle'
-MANIFEST_FILE      = File.expand_path 'AndroidManifest.xml'
+BUNDLE_JAR = File.expand_path 'libs/bundle.jar'
+BUNDLE_PATH = File.expand_path 'bin/bundle'
+MANIFEST_FILE = File.expand_path 'AndroidManifest.xml'
 PROJECT_PROPS_FILE = File.expand_path 'project.properties'
 RUBOTO_CONFIG_FILE = File.expand_path 'ruboto.yml'
-GEM_FILE           = File.expand_path('Gemfile.apk')
-GEM_LOCK_FILE      = File.expand_path('Gemfile.apk.lock')
-RELEASE_APK_FILE   = File.expand_path "bin/#{build_project_name}-release.apk"
-APK_FILE           = File.expand_path "bin/#{build_project_name}-debug.apk"
-TEST_APK_FILE      = File.expand_path "test/bin/#{build_project_name}Test-debug.apk"
-JRUBY_JARS         = Dir[File.expand_path 'libs/jruby-*.jar']
-RESOURCE_FILES     = Dir[File.expand_path 'res/**/*']
-JAVA_SOURCE_FILES  = Dir[File.expand_path 'src/**/*.java']
-RUBY_SOURCE_FILES  = Dir[File.expand_path 'src/**/*.rb']
-APK_DEPENDENCIES   = [MANIFEST_FILE, RUBOTO_CONFIG_FILE, BUNDLE_JAR] + JRUBY_JARS + JAVA_SOURCE_FILES + RESOURCE_FILES + RUBY_SOURCE_FILES
-KEYSTORE_FILE      = (key_store = File.readlines('ant.properties').grep(/^key.store=/).first) ? File.expand_path(key_store.chomp.sub(/^key.store=/, '').sub('${user.home}', '~')) : "#{build_project_name}.keystore"
-KEYSTORE_ALIAS     = (key_alias = File.readlines('ant.properties').grep(/^key.alias=/).first) ? key_alias.chomp.sub(/^key.alias=/, '') : build_project_name
+GEM_FILE = File.expand_path 'Gemfile.apk'
+GEM_LOCK_FILE = File.expand_path 'Gemfile.apk.lock'
+RELEASE_APK_FILE = File.expand_path "bin/#{build_project_name}-release.apk"
+APK_FILE = File.expand_path "bin/#{build_project_name}-debug.apk"
+TEST_APK_FILE = File.expand_path "test/bin/#{build_project_name}Test-debug.apk"
+JRUBY_JARS = Dir[File.expand_path 'libs/jruby-*.jar']
+RESOURCE_FILES = Dir[File.expand_path 'res/**/*']
+JAVA_SOURCE_FILES = Dir[File.expand_path 'src/**/*.java']
+RUBY_SOURCE_FILES = Dir[File.expand_path 'src/**/*.rb']
+APK_DEPENDENCIES = [MANIFEST_FILE, RUBOTO_CONFIG_FILE, BUNDLE_JAR] + JRUBY_JARS + JAVA_SOURCE_FILES + RESOURCE_FILES + RUBY_SOURCE_FILES
+KEYSTORE_FILE = (key_store = File.readlines('ant.properties').grep(/^key.store=/).first) ? File.expand_path(key_store.chomp.sub(/^key.store=/, '').sub('${user.home}', '~')) : "#{build_project_name}.keystore"
+KEYSTORE_ALIAS = (key_alias = File.readlines('ant.properties').grep(/^key.alias=/).first) ? key_alias.chomp.sub(/^key.alias=/, '') : build_project_name
 
-CLEAN.include('bin', 'gen')
+CLEAN.include('bin', 'gen', 'test/bin', 'test/gen')
 
 task :default => :debug
 
@@ -84,7 +103,7 @@ namespace :debug do
   end
 end
 
-desc "build package and install it on the emulator or device"
+desc 'build package and install it on the emulator or device'
 task :install => APK_FILE do
   install_apk
 end
@@ -117,10 +136,10 @@ task :keystore => KEYSTORE_FILE
 
 file KEYSTORE_FILE do
   unless File.read('ant.properties') =~ /^key.store=/
-    File.open('ant.properties', 'a'){|f| f << "\nkey.store=#{KEYSTORE_FILE}\n"}
+    File.open('ant.properties', 'a') { |f| f << "\nkey.store=#{KEYSTORE_FILE}\n" }
   end
   unless File.read('ant.properties') =~ /^key.alias=/
-    File.open('ant.properties', 'a'){|f| f << "\nkey.alias=#{KEYSTORE_ALIAS}\n"}
+    File.open('ant.properties', 'a') { |f| f << "\nkey.alias=#{KEYSTORE_ALIAS}\n" }
   end
   sh "keytool -genkey -v -keystore #{KEYSTORE_FILE} -alias #{KEYSTORE_ALIAS} -keyalg RSA -keysize 2048 -validity 10000"
 end
@@ -129,14 +148,14 @@ desc 'Tag this working copy with the current version'
 task :tag do
   next unless File.exists?('.git') && `git --version` =~ /git version /
   unless `git branch` =~ /^\* master$/
-    puts "You must be on the master branch to release!"
+    puts 'You must be on the master branch to release!'
     exit!
   end
   # sh "git commit --allow-empty -a -m 'Release #{version}'"
   output = `git status --porcelain`
   raise "\nWorkspace not clean!\n#{output}" unless output.empty?
   sh "git tag #{version}"
-  sh "git push origin master --tags"
+  sh 'git push origin master --tags'
 end
 
 desc 'Start the emulator with larger disk'
@@ -151,7 +170,7 @@ end
 
 desc 'Stop the application on the device/emulator (requires emulator or rooted device).'
 task :stop do
-  raise "Unable to stop app.  Only available on emulator." unless stop_app
+  raise 'Unable to stop app.  Only available on emulator.' unless stop_app
 end
 
 desc 'Restart the application'
@@ -166,9 +185,9 @@ file MANIFEST_FILE => PROJECT_PROPS_FILE do
   sdk_level = File.read(PROJECT_PROPS_FILE).scan(/(?:target=android-)(\d+)/)[0][0].to_i
   old_manifest = File.read(MANIFEST_FILE)
   manifest = old_manifest.dup
-  manifest.sub!(/(android:minSdkVersion=').*?(')/){|m| "#$1#{sdk_level}#$2"}
-  manifest.sub!(/(android:targetSdkVersion=').*?(')/){|m| "#$1#{sdk_level}#$2"}
-  File.open(MANIFEST_FILE, 'w'){|f| f << manifest} if manifest != old_manifest
+  manifest.sub!(/(android:minSdkVersion=').*?(')/) { "#$1#{sdk_level}#$2" }
+  manifest.sub!(/(android:targetSdkVersion=').*?(')/) { "#$1#{sdk_level}#$2" }
+  File.open(MANIFEST_FILE, 'w') { |f| f << manifest } if manifest != old_manifest
 end
 
 file RUBOTO_CONFIG_FILE
@@ -178,7 +197,7 @@ file APK_FILE => APK_DEPENDENCIES do |t|
 end
 
 desc 'Copy scripts to emulator or device'
-task :update_scripts => ['install:quick'] do
+task :update_scripts => %w(install:quick) do
   update_scripts
 end
 
@@ -206,7 +225,23 @@ namespace :test do
   task :quick => :update_scripts do
     Dir.chdir('test') do
       puts 'Running quick tests'
-      sh "#{ANT_CMD} instrument install run-tests-quick"
+      sh "#{ANT_CMD} instrument"
+      install_retry_count = 0
+      begin
+        timeout 120 do
+          sh "#{ANT_CMD} installi"
+        end
+      rescue TimeoutError
+        puts 'Installing package timed out.'
+        install_retry_count += 1
+        if install_retry_count > 3
+          puts 'Retrying install...'
+          retry
+        end
+        puts 'Trying one final time to install the package:'
+        sh "#{ANT_CMD} installi"
+      end
+      sh "#{ANT_CMD} run-tests-quick"
     end
   end
 end
@@ -221,11 +256,26 @@ file BUNDLE_JAR => [GEM_FILE, GEM_LOCK_FILE] do
   next unless File.exists? GEM_FILE
   puts "Generating #{BUNDLE_JAR}"
 
-  FileUtils.mkdir_p BUNDLE_PATH
-  sh "bundle install --gemfile #{GEM_FILE} --path=#{BUNDLE_PATH}"
+  # Override RUBY_ENGINE (we can bundle from MRI for JRuby)
+  platforms = Gem.platforms
+  ruby_engine = defined?(RUBY_ENGINE) && RUBY_ENGINE
+  Gem.platforms = [Gem::Platform::RUBY, Gem::Platform.new('universal-java')]
+  Object.const_set('RUBY_ENGINE', 'jruby')
 
-  gem_paths = Dir["#{BUNDLE_PATH}/{{,j}ruby,rbx}/{1.8,1.9{,.1},shared}/gems"]
-  raise "Gem path not found" if gem_paths.empty?
+  ENV['BUNDLE_GEMFILE'] = GEM_FILE
+  require 'bundler'
+  Bundler.bundle_path = Pathname.new BUNDLE_PATH
+
+  definition = Bundler.definition
+  definition.validate_ruby!
+  Bundler::Installer.install(Bundler.root, definition)
+
+  # Restore RUBY_ENGINE (limit the scope of this hack)
+  Object.const_set('RUBY_ENGINE', ruby_engine) if ruby_engine
+  Gem.platforms = platforms
+
+  gem_paths = Dir["#{BUNDLE_PATH}/gems"]
+  raise 'Gem path not found' if gem_paths.empty?
   raise "Found multiple gem paths: #{gem_paths}" if gem_paths.size > 1
   gem_path = gem_paths[0]
   puts "Found gems in #{gem_path}"
@@ -257,11 +307,11 @@ file BUNDLE_JAR => [GEM_FILE, GEM_LOCK_FILE] do
   Dir.chdir gem_path do
     scanned_files = []
     source_files = RUBY_SOURCE_FILES.map { |f| f.gsub("#{PROJECT_DIR}/src/", '') }
-    Dir["*/lib/**/*"].each do |f|
+    Dir['*/lib/**/*'].each do |f|
       next if File.directory? f
-      raise "Malformed file name" unless f =~ %r{^(.*?)/lib/(.*)$}
+      raise 'Malformed file name' unless f =~ %r{^(.*?)/lib/(.*)$}
       gem_name, lib_file = $1, $2
-      if existing_file = scanned_files.find { |sf| sf =~ %r{(.*?)/lib/#{lib_file}} }
+      if (existing_file = scanned_files.find { |sf| sf =~ %r{(.*?)/lib/#{lib_file}} })
         puts "Overwriting duplicate file #{lib_file} in gem #{$1} with file in #{gem_name}"
         FileUtils.rm existing_file
         scanned_files.delete existing_file
@@ -299,6 +349,20 @@ require 'jruby'
 puts 'Starting JRuby OpenSSL Service'
 public
 Java::JopensslService.new.basicLoad(JRuby.runtime)
+            END_CODE
+          elsif jar =~ %r{json/ext/generator.jar$}
+            jar_load_code = <<-END_CODE
+require 'jruby'
+puts 'Starting JSON Generator Service'
+public
+Java::json.ext.GeneratorService.new.basicLoad(JRuby.runtime)
+            END_CODE
+          elsif jar =~ %r{json/ext/parser.jar$}
+            jar_load_code = <<-END_CODE
+require 'jruby'
+puts 'Starting JSON Parser Service'
+public
+Java::json.ext.ParserService.new.basicLoad(JRuby.runtime)
             END_CODE
           else
             jar_load_code = ''
@@ -358,18 +422,24 @@ end
 
 def device_path_exists?(path)
   path_output =`adb shell ls #{path}`
-  result = path_output.chomp !~ /No such file or directory|opendir failed, Permission denied/
-  result
+  path_output.chomp !~ /No such file or directory|opendir failed, Permission denied/
 end
 
-def package_installed? test = false
+# Determine if the package is installed.
+# Return true if the package is installed and is identical to the local package.
+# Return false if the package is installed, but differs from the local package.
+# Return nil if the package is not installed.
+def package_installed?(test = false)
   package_name = "#{package}#{'.tests' if test}"
-  ['', '-0', '-1', '-2'].each do |i|
+  %w( -0 -1 -2).each do |i|
     path = "/data/app/#{package_name}#{i}.apk"
     o = `adb shell ls -l #{path}`.chomp
-    if o =~ /^-rw-r--r-- system\s+system\s+(\d+) \d{4}-\d{2}-\d{2} \d{2}:\d{2} #{File.basename(path)}$/
+    if o =~ /^-rw-r--r-- system\s+system\s+(\d+)\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s+#{File.basename(path)}$/
+      installed_apk_size = $1.to_i
+      installed_timestamp = Time.parse($2)
       apk_file = test ? TEST_APK_FILE : APK_FILE
-      if !File.exists?(apk_file) || $1.to_i == File.size(apk_file)
+      if !File.exists?(apk_file) || (installed_apk_size == File.size(apk_file) &&
+          installed_timestamp >= File.mtime(apk_file))
         return true
       else
         return false
@@ -378,16 +448,19 @@ def package_installed? test = false
 
     sdcard_path = "/mnt/asec/#{package_name}#{i}/pkg.apk"
     o = `adb shell ls -l #{sdcard_path}`.chomp
-    if o =~ /^-r-xr-xr-x system\s+root\s+(\d+) \d{4}-\d{2}-\d{2} \d{2}:\d{2} #{File.basename(sdcard_path)}$/
+    if o =~ /^-r-xr-xr-x system\s+root\s+(\d+)\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s+#{File.basename(sdcard_path)}$/
+      installed_apk_size = $1.to_i
+      installed_timestamp = Time.parse($2)
       apk_file = test ? TEST_APK_FILE : APK_FILE
-      if !File.exists?(apk_file) || $1.to_i == File.size(apk_file)
+      if !File.exists?(apk_file) || (installed_apk_size == File.size(apk_file) &&
+          installed_timestamp >= File.mtime(apk_file))
         return true
       else
         return false
       end
     end
   end
-  return nil
+  nil
 end
 
 def replace_faulty_code(faulty_file, faulty_code)
@@ -420,7 +493,7 @@ def build_apk(t, release)
   else
     sh "#{ANT_CMD} debug"
   end
-  return true
+  true
 end
 
 def install_apk
@@ -431,23 +504,55 @@ def install_apk
     puts "Package #{package} already installed."
     return
   when false
-    puts "Package #{package} already installed, but of different size.  Replacing package."
-    output = `adb install -r #{APK_FILE} 2>&1`
+    puts "Package #{package} already installed, but of different size or timestamp.  Replacing package."
+    output = nil
+    install_retry_count = 0
+    begin
+      timeout 120 do
+        output = `adb install -r #{APK_FILE} 2>&1`
+      end
+    rescue Timeout::Error
+      puts "Installing package #{package} timed out."
+      install_retry_count += 1
+      if install_retry_count > 3
+        puts 'Retrying install...'
+        retry
+      end
+      puts 'Trying one final time to install the package:'
+      output = `adb install -r #{APK_FILE} 2>&1`
+    end
     if $? == 0 && output !~ failure_pattern && output =~ success_pattern
       clear_update
       return
     end
     case $1
     when 'INSTALL_PARSE_FAILED_INCONSISTENT_CERTIFICATES'
-      puts "Found package signed with different certificate.  Uninstalling it and retrying install."
+      puts 'Found package signed with different certificate.  Uninstalling it and retrying install.'
     else
       puts "'adb install' returned an unknown error: (#$?) #{$1 ? "[#$1}]" : output}."
       puts "Uninstalling #{package} and retrying install."
     end
     uninstall_apk
+  else
+    # Package not installed.
   end
   puts "Installing package #{package}"
-  output = `adb install #{APK_FILE} 2>&1`
+  output = nil
+  install_retry_count = 0
+  begin
+    timeout 120 do
+      output = `adb install #{APK_FILE} 2>&1`
+    end
+  rescue Timeout::Error
+    puts "Installing package #{package} timed out."
+    install_retry_count += 1
+    if install_retry_count > 3
+      puts 'Retrying install...'
+      retry
+    end
+    puts 'Trying one final time to install the package:'
+    output = `adb install #{APK_FILE} 2>&1`
+  end
   puts output
   raise "Install failed (#{$?}) #{$1 ? "[#$1}]" : output}" if $? != 0 || output =~ failure_pattern || output !~ success_pattern
   clear_update
@@ -465,10 +570,10 @@ end
 
 def update_scripts
   `adb shell mkdir -p #{scripts_path}` if !device_path_exists?(scripts_path)
-  puts "Pushing files to apk public file area."
+  puts 'Pushing files to apk public file area.'
   last_update = File.exists?(UPDATE_MARKER_FILE) ? Time.parse(File.read(UPDATE_MARKER_FILE)) : Time.parse('1970-01-01T00:00:00')
   Dir.chdir('src') do
-    Dir["**/*.rb"].each do |script_file|
+    Dir['**/*.rb'].each do |script_file|
       next if File.directory? script_file
       next if File.mtime(script_file) < last_update
       next if script_file =~ /~$/
@@ -485,5 +590,5 @@ end
 
 def stop_app
   output = `adb shell ps | grep #{package} | awk '{print $2}' | xargs adb shell kill`
-  return output !~ /Operation not permitted/
+  output !~ /Operation not permitted/
 end

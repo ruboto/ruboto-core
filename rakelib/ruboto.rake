@@ -37,7 +37,10 @@ unless File.exists? dx_filename
   exit 1
 end
 new_dx_content = File.read(dx_filename).dup
+
+# FIXME(uwe): Set Xmx on windows bat script:
 # set defaultXmx=-Xmx1024M
+
 xmx_pattern = /^defaultMx="-Xmx(\d+)(M|m|G|g|T|t)"/
 if new_dx_content =~ xmx_pattern &&
     ($1.to_i * 1024 ** {'M' => 2, 'G' => 3, 'T' => 4}[$2.upcase]) < 2560*1024**2
@@ -160,7 +163,7 @@ end
 
 desc 'Start the emulator with larger disk'
 task :emulator do
-  sh 'emulator -partition-size 1024 -avd Android_3.0'
+  sh "emulator -partition-size 1024 -avd Android_#{sdk_level_name}"
 end
 
 desc 'Start the application on the device/emulator.'
@@ -182,7 +185,6 @@ end
 
 file PROJECT_PROPS_FILE
 file MANIFEST_FILE => PROJECT_PROPS_FILE do
-  sdk_level = File.read(PROJECT_PROPS_FILE).scan(/(?:target=android-)(\d+)/)[0][0].to_i
   old_manifest = File.read(MANIFEST_FILE)
   manifest = old_manifest.dup
   manifest.sub!(/(android:minSdkVersion=').*?(')/) { "#$1#{sdk_level}#$2" }
@@ -213,7 +215,7 @@ namespace :update_scripts do
   end
 end
 
-task :test => :uninstall do
+task :test => APK_DEPENDENCIES + [:uninstall] do
   Dir.chdir('test') do
     puts 'Running tests'
     sh "adb uninstall #{package}.tests"
@@ -234,7 +236,7 @@ namespace :test do
       rescue TimeoutError
         puts 'Installing package timed out.'
         install_retry_count += 1
-        if install_retry_count > 3
+        if install_retry_count <= 3
           puts 'Retrying install...'
           retry
         end
@@ -333,16 +335,32 @@ file BUNDLE_JAR => [GEM_FILE, GEM_LOCK_FILE] do
           unless jar =~ /sqlite-jdbc/
             puts "Expanding #{gem_lib} #{jar} into #{BUNDLE_JAR}"
             `jar xf #{jar}`
+            if ENV['STRIP_INVOKERS']
+              invokers = Dir['**/*$INVOKER$*.class']
+              if invokers.size > 0
+                puts "Removing invokers(#{invokers.size})..."
+                FileUtils.rm invokers
+              end
+              populators = Dir['**/*$POPULATOR.class']
+              if populators.size > 0
+                puts "Removing populators(#{populators.size})..."
+                FileUtils.rm populators
+              end
+            end
           end
           if jar == 'arjdbc/jdbc/adapter_java.jar'
             jar_load_code = <<-END_CODE
 require 'jruby'
 Java::arjdbc.jdbc.AdapterJavaService.new.basicLoad(JRuby.runtime)
             END_CODE
-            classes = Dir['arjdbc/**/*']
-            dbs = /db2|derby|firebird|h2|hsqldb|informix|mimer|mssql|mysql|oracle|postgres|sybase/i
-            files = classes.grep(dbs)
-            FileUtils.rm_f(files)
+
+            # TODO(uwe): Seems ARJDBC requires all these classes to be present...
+            # classes = Dir['arjdbc/**/*']
+            # dbs = /db2|derby|firebird|h2|hsqldb|informix|mimer|mssql|mysql|oracle|postgres|sybase/i
+            # files = classes.grep(dbs)
+            # FileUtils.rm_f(files)
+            # ODOT
+
           elsif jar =~ /shared\/jopenssl.jar$/
             jar_load_code = <<-END_CODE
 require 'jruby'
@@ -388,6 +406,19 @@ Java::json.ext.ParserService.new.basicLoad(JRuby.runtime)
 end
 
 # Methods
+
+API_LEVEL_TO_VERSION = {
+    7 => '2.1', 8 => '2.2', 10 => '2.3.3', 11 => '3.0', 12 => '3.1',
+    13 => '3.2', 14 => '4.0', 15 => '4.0.3', 16 => '4.1.2', 17 => '4.2.2',
+}
+
+def sdk_level_name
+  API_LEVEL_TO_VERSION[sdk_level]
+end
+
+def sdk_level
+  File.read(PROJECT_PROPS_FILE).scan(/(?:target=android-)(\d+)/)[0][0].to_i
+end
 
 def mark_update(time = Time.now)
   FileUtils.mkdir_p File.dirname(UPDATE_MARKER_FILE)
@@ -505,6 +536,7 @@ def install_apk
     return
   when false
     puts "Package #{package} already installed, but of different size or timestamp.  Replacing package."
+    sh "adb shell date -s #{Time.now.strftime '%Y%m%d.%H%M%S'}"
     output = nil
     install_retry_count = 0
     begin
@@ -514,7 +546,7 @@ def install_apk
     rescue Timeout::Error
       puts "Installing package #{package} timed out."
       install_retry_count += 1
-      if install_retry_count > 3
+      if install_retry_count <= 3
         puts 'Retrying install...'
         retry
       end
@@ -535,6 +567,7 @@ def install_apk
     uninstall_apk
   else
     # Package not installed.
+    sh "adb shell date -s #{Time.now.strftime '%Y%m%d.%H%M%S'}"
   end
   puts "Installing package #{package}"
   output = nil
@@ -546,7 +579,7 @@ def install_apk
   rescue Timeout::Error
     puts "Installing package #{package} timed out."
     install_retry_count += 1
-    if install_retry_count > 3
+    if install_retry_count <= 3
       puts 'Retrying install...'
       retry
     end

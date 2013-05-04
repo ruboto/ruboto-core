@@ -75,7 +75,7 @@ end
 # Load ViewGroup constants
 #
 
-java_import "android.view.ViewGroup"
+java_import 'android.view.ViewGroup'
 ViewGroup::LayoutParams.constants.each do |i|
   View.add_constant_conversion i.downcase.to_sym, ViewGroup::LayoutParams.const_get(i)
 end
@@ -84,7 +84,7 @@ end
 # Load Gravity constants
 #
 
-java_import "android.view.Gravity"
+java_import 'android.view.Gravity'
 Gravity.constants.each do |i|
   View.add_constant_conversion i.downcase.to_sym, Gravity.const_get(i)
 end
@@ -97,7 +97,7 @@ def ruboto_import_widgets(*widgets)
   widgets.each { |i| ruboto_import_widget i }
 end
 
-def ruboto_import_widget(class_name, package_name="android.widget")
+def ruboto_import_widget(class_name, package_name='android.widget')
   if class_name.is_a?(String) or class_name.is_a?(Symbol)
     klass = java_import("#{package_name}.#{class_name}") || eval("Java::#{package_name}.#{class_name}")
   else
@@ -165,6 +165,7 @@ def setup_image_button
 end
 
 def setup_list_view
+  Java::android.widget.ListView.__persistent__ = true
   Java::android.widget.ListView.class_eval do
     def configure(context, params = {})
       if list = params.delete(:list)
@@ -186,6 +187,7 @@ def setup_list_view
 end
 
 def setup_spinner
+  Java::android.widget.Spinner.__persistent__ = true
   Java::android.widget.Spinner.class_eval do
     attr_reader :adapter, :adapter_list
 

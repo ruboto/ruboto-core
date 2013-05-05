@@ -7,11 +7,15 @@ class RubotoCoreActivity
   def onCreate(bundle)
     super
     set_title R.string.app_title
+    installerPackageName = getIntent().getStringExtra(
+                Intent.EXTRA_INSTALLER_PACKAGE_NAME)
 
     self.content_view =
         linear_layout :orientation => :vertical, :background_color => 0xFFB90706 do
           text_view :text => getString(R.string.title), :width => :match_parent, :id => 42,
                     :gravity => :center, :text_size => 48.0, :background_color => 0xFF24456A
+          text_view(:text => installerPackageName,
+                    :width => :match_parent, :gravity => :center, :text_size => 24.0) if installerPackageName
           text_view(:text => package_manager.getInstallerPackageName($package_name),
                     :width => :match_parent, :gravity => :center, :text_size => 24.0) if package_manager.getInstallerPackageName($package_name)
           text_view :text => getString(R.string.content).gsub(/\n+/, '  '),

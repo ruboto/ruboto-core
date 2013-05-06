@@ -7,7 +7,7 @@ class RubotoCoreActivity
   def onCreate(bundle)
     super
     set_title R.string.app_title
-    installerPackageName = getIntent().getStringExtra(Intent::EXTRA_INSTALLER_PACKAGE_NAME)
+    installerPackageName = getIntent().getStringExtra(android.content.Intent::EXTRA_INSTALLER_PACKAGE_NAME)
     pm_installer_package_name = package_manager.getInstallerPackageName($package_name)
     p installerPackageName
     p pm_installer_package_name

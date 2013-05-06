@@ -16,10 +16,10 @@ class RubotoCoreActivity
         linear_layout :orientation => :vertical, :background_color => 0xFFB90706 do
           text_view :text => getString(R.string.title), :width => :match_parent, :id => 42,
                     :gravity => :center, :text_size => 48.0, :background_color => 0xFF24456A
-          text_view(:text => installerPackageName,
-                    :width => :match_parent, :gravity => :center, :text_size => 24.0) if installerPackageName
-          text_view(:text => pm_installer_package_name,
-                    :width => :match_parent, :gravity => :center, :text_size => 24.0) if pm_installer_package_name
+          text_view(:text => installerPackageName.to_s,
+                    :width => :match_parent, :gravity => :center, :text_size => 24.0)
+          text_view(:text => pm_installer_package_name.to_s,
+                    :width => :match_parent, :gravity => :center, :text_size => 24.0)
           text_view :text => getString(R.string.content).gsub(/\n+/, '  '),
                     :width => :match_parent, :gravity => :center, :text_size => 24.0
           button :text => getString(R.string.homepage), :width => :match_parent, :on_click_listener => proc { go_home }

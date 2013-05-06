@@ -7,19 +7,11 @@ class RubotoCoreActivity
   def onCreate(bundle)
     super
     set_title R.string.app_title
-    installerPackageName = getIntent().getStringExtra(android.content.Intent::EXTRA_INSTALLER_PACKAGE_NAME)
-    pm_installer_package_name = package_manager.getInstallerPackageName($package_name)
-    p installerPackageName
-    p pm_installer_package_name
 
     self.content_view =
         linear_layout :orientation => :vertical, :background_color => 0xFFB90706 do
           text_view :text => getString(R.string.title), :width => :match_parent, :id => 42,
                     :gravity => :center, :text_size => 48.0, :background_color => 0xFF24456A
-          text_view(:text => installerPackageName.to_s,
-                    :width => :match_parent, :gravity => :center, :text_size => 24.0)
-          text_view(:text => pm_installer_package_name.to_s,
-                    :width => :match_parent, :gravity => :center, :text_size => 24.0)
           text_view :text => getString(R.string.content).gsub(/\n+/, '  '),
                     :width => :match_parent, :gravity => :center, :text_size => 24.0
           button :text => getString(R.string.homepage), :width => :match_parent, :on_click_listener => proc { go_home }

@@ -11,5 +11,5 @@ the ```--with-jruby``` option or adding it later with the ```ruboto gen jruby```
 ## New in version 0.6.0
 
 * Updated to JRuby 1.7.4
-* Updated to Ruboto 0.12.0
+* Updated to Ruboto 0.13.0
 * Require Android 2.3.3 or newer

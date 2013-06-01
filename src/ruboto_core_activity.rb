@@ -1,9 +1,10 @@
 require 'ruboto/widget'
 
-ruboto_import_widgets :Button, :LinearLayout, :TextView
+ruboto_import_widgets :Button, :LinearLayout, :ScrollView, :TextView
 
 class RubotoCoreActivity
   import org.ruboto.core.R
+
   def onCreate(bundle)
     super
     set_title R.string.app_title
@@ -12,8 +13,10 @@ class RubotoCoreActivity
         linear_layout :orientation => :vertical, :background_color => 0xFFB90706 do
           text_view :text => getString(R.string.title), :width => :match_parent, :id => 42,
                     :gravity => :center, :text_size => 48.0, :background_color => 0xFF24456A
-          text_view :text => getString(R.string.content).gsub(/\n+/, '  '),
-                    :width => :match_parent, :gravity => :center, :text_size => 24.0
+          scroll_view :layout => {:weight= => 1} do
+            text_view :text => getString(R.string.content).gsub(/\n+/, '  '),
+                      :width => :match_parent, :gravity => :center, :text_size => 24.0
+          end
           button :text => getString(R.string.homepage), :width => :match_parent, :on_click_listener => proc { go_home }
           button :text => getString(R.string.exit), :width => :match_parent, :on_click_listener => proc { finish }
         end

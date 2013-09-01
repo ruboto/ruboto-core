@@ -12,4 +12,5 @@
         <service android:exported='false' android:name='org.ruboto.RubotoService'/>
     </application>
     <uses-sdk android:minSdkVersion='10' android:targetSdkVersion='10'/>
+    <uses-feature android:name='android.hardware.touchscreen' android:required='false'/>
 </manifest>

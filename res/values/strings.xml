@@ -23,5 +23,8 @@
   <string name='exit'>
     Exit
   </string>
+  <string name='starting_msg'>
+  	Starting...
+  </string>
 
 </resources>

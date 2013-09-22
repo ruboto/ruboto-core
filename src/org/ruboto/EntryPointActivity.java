@@ -1,5 +1,7 @@
 package org.ruboto;
 
+import org.ruboto.core.R;
+
 import android.app.DownloadManager;
 import android.app.DownloadManager.Query;
 import android.app.DownloadManager.Request;
@@ -203,7 +205,7 @@ public class EntryPointActivity extends org.ruboto.RubotoActivity {
                 setContentView(splash);
             } else {
                 Log.i("Showing progress");
-                loadingDialog = ProgressDialog.show(this, null, "Starting...", true, true);
+                loadingDialog = ProgressDialog.show(this, null, getString(R.string.starting_msg), true, true);
                 loadingDialog.setCanceledOnTouchOutside(false);
                 loadingDialog.setOnCancelListener(new OnCancelListener() {
                     public void onCancel(DialogInterface dialog) {

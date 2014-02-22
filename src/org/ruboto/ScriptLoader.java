@@ -1,6 +1,7 @@
 package org.ruboto;
 
 import java.io.IOException;
+import java.util.Map;
 
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -12,7 +13,7 @@ public class ScriptLoader {
     */
     public static boolean isCalledFromJRuby() {
         StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-        int maxLookBack = Math.min(9, stackTraceElements.length);
+        int maxLookBack = Math.min(8, stackTraceElements.length);
         for(int i = 0; i < maxLookBack ; i++){
             if (stackTraceElements[i].getClassName().startsWith("org.jruby.javasupport.JavaMethod")) {
                 return true;
@@ -52,7 +53,6 @@ public class ScriptLoader {
                                 JRubyAdapter.put("$java_instance", component);
                                 rubyClass = JRubyAdapter.runScriptlet("class << $java_instance; self; end");
                             } else if (JRubyAdapter.isRubyOneNine()) {
-                                JRubyAdapter.runScriptlet("Java::" + component.getClass().getName() + ".__persistent__ = true");
                                 rubyClass = JRubyAdapter.runRubyMethod(component, "singleton_class");
                             } else {
                                 throw new RuntimeException("Unknown Ruby version: " + JRubyAdapter.get("RUBY_VERSION"));
@@ -67,7 +67,6 @@ public class ScriptLoader {
                             Log.d("Script contains class definition");
                             if (rubyClass == null && hasBackingJavaClass) {
                                 Log.d("Script has separate Java class");
-                                JRubyAdapter.runScriptlet("Java::" + component.getClass().getName() + ".__persistent__ = true");
                                 rubyClass = JRubyAdapter.runScriptlet("Java::" + component.getClass().getName());
                             }
                             Log.d("Set class: " + rubyClass);
@@ -107,6 +106,7 @@ public class ScriptLoader {
                 }
                 component.getScriptInfo().setRubyInstance(rubyInstance);
             }
+            persistObjectProxy(component);
         } catch(IOException e){
             e.printStackTrace();
             if (component instanceof android.content.Context) {
@@ -115,17 +115,13 @@ public class ScriptLoader {
         }
     }
 
-    public static final void callOnCreate(final RubotoComponent component, Object... args) {
-        if (component instanceof android.content.Context) {
-            Log.d("Call onCreate on: " + component.getScriptInfo().getRubyInstance());
-            // FIXME(uwe):  Simplify when we stop support for snake case aliasing interface callback methods.
-            if ((Boolean)JRubyAdapter.runScriptlet(component.getScriptInfo().getRubyClassName() + ".instance_methods(false).any?{|m| m.to_sym == :onCreate}")) {
-                JRubyAdapter.runRubyMethod(component.getScriptInfo().getRubyInstance(), "onCreate", args);
-            } else if ((Boolean)JRubyAdapter.runScriptlet(component.getScriptInfo().getRubyClassName() + ".instance_methods(false).any?{|m| m.to_sym == :on_create}")) {
-                JRubyAdapter.runRubyMethod(component.getScriptInfo().getRubyInstance(), "on_create", args);
-            }
-            // EMXIF
-        }
+    private static void persistObjectProxy(RubotoComponent component) {
+        JRubyAdapter.runScriptlet("Java::" + component.getClass().getName() + ".__persistent__ = true");
+        ((Map)JRubyAdapter.get("RUBOTO_JAVA_PROXIES")).put(component.getScriptInfo().getRubyInstance(), component.getScriptInfo().getRubyInstance());
+    }
+
+    public static void unloadScript(RubotoComponent component) {
+        ((Map)JRubyAdapter.get("RUBOTO_JAVA_PROXIES")).remove(component.getScriptInfo().getRubyInstance());
     }
 
 }

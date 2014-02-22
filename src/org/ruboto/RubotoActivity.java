@@ -8,64 +8,51 @@ import android.app.ProgressDialog;
 import android.os.Bundle;
 
 public class RubotoActivity extends android.app.Activity implements org.ruboto.RubotoComponent {
+    public static final String THEME_KEY = "RUBOTO_THEME";
+
+    /**
+     * Called at the start of onCreate() to prepare the Activity.
+     * @return true if onCreate() should just call super and terminate.
+     */
+    private boolean preOnCreate(Bundle bundle) {
+        System.out.println("RubotoActivity onCreate(): " + getClass().getName() + ", finishing: " + isFinishing());
+
+        if (isFinishing()) return true;
+
+        // Shut this RubotoActivity down if it's not able to restart
+        if (this.getClass().getName().equals("org.ruboto.RubotoActivity") && !JRubyAdapter.isInitialized()) {
+            super.onCreate(bundle);
+            System.out.println("Shutting down stale RubotoActivity: " + getClass().getName());
+            finish();
+            return true;
+        }
+
+        // FIXME(uwe):  Deprecated as of Ruboto 0.13.0.  Remove in june 2014 (twelve months).
+        Bundle configBundle = getIntent().getBundleExtra("Ruboto Config");
+        if (configBundle != null) {
+            if (configBundle.containsKey("Theme")) {
+                setTheme(configBundle.getInt("Theme"));
+            }
+        }
+        // EMXIF
+
+        if (getIntent().hasExtra(THEME_KEY)) {
+            setTheme(getIntent().getIntExtra(THEME_KEY, 0));
+        }
+
+        scriptInfo.setFromIntent(getIntent());
+        return false;
+    }
+
     private final ScriptInfo scriptInfo = new ScriptInfo();
-    private String remoteVariable = null;
-    Bundle[] args;
-
-    public RubotoActivity setRemoteVariable(String var) {
-        remoteVariable = var;
-        return this;
-    }
-
-    public String getRemoteVariableCall(String call) {
-        return (remoteVariable == null ? "" : (remoteVariable + ".")) + call;
-    }
-
     public ScriptInfo getScriptInfo() {
         return scriptInfo;
     }
 
     /****************************************************************************************
      *
-     *  Activity Lifecycle: onCreate
+     *  Generated Methods
      */
-    @Override
-    public void onCreate(Bundle bundle) {
-        System.out.println("RubotoActivity onCreate(): " + getClass().getName());
-        if (ScriptLoader.isCalledFromJRuby()) {
-            super.onCreate(bundle);
-            return;
-        }
-        args = new Bundle[1];
-        args[0] = bundle;
-
-        Bundle configBundle = getIntent().getBundleExtra("Ruboto Config");
-        if (configBundle != null) {
-            if (configBundle.containsKey("Theme")) {
-                setTheme(configBundle.getInt("Theme"));
-            }
-            scriptInfo.setFromIntent(getIntent());
-        }
-
-        if (JRubyAdapter.isInitialized() && scriptInfo.isReadyToLoad()) {
-    	    ScriptLoader.loadScript(this);
-    	    ScriptLoader.callOnCreate(this, (Object[]) args);
-        } else {
-            super.onCreate(bundle);
-        }
-    }
-
-    // FIXME(uwe):  What is this for?
-    public boolean rubotoAttachable() {
-      return true;
-    }
-    // EMXIF
-
-  /****************************************************************************************
-   * 
-   *  Generated Methods
-   */
-
   public void onActivityResult(int requestCode, int resultCode, android.content.Intent data) {
     if (ScriptLoader.isCalledFromJRuby()) {super.onActivityResult(requestCode, resultCode, data); return;}
     if (!JRubyAdapter.isInitialized()) {
@@ -74,13 +61,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onActivityResult(requestCode, resultCode, data); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_activity_result}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_activity_result", new Object[]{requestCode, resultCode, data});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onActivityResult}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onActivityResult", new Object[]{requestCode, resultCode, data});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onActivityResult}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onActivityResult", new Object[]{requestCode, resultCode, data});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_activity_result}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_activity_result", new Object[]{requestCode, resultCode, data});
       } else {
-        {super.onActivityResult(requestCode, resultCode, data); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_activity_result}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_activity_result", new Object[]{requestCode, resultCode, data});
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onActivityResult", new Object[]{requestCode, resultCode, data});
+        }
       }
     }
   }
@@ -93,13 +84,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onChildTitleChanged(childActivity, title); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_child_title_changed}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_child_title_changed", new Object[]{childActivity, title});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onChildTitleChanged}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onChildTitleChanged", new Object[]{childActivity, title});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onChildTitleChanged}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onChildTitleChanged", new Object[]{childActivity, title});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_child_title_changed}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_child_title_changed", new Object[]{childActivity, title});
       } else {
-        {super.onChildTitleChanged(childActivity, title); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_child_title_changed}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_child_title_changed", new Object[]{childActivity, title});
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onChildTitleChanged", new Object[]{childActivity, title});
+        }
       }
     }
   }
@@ -112,13 +107,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onConfigurationChanged(newConfig); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_configuration_changed}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_configuration_changed", newConfig);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onConfigurationChanged}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onConfigurationChanged", newConfig);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onConfigurationChanged}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onConfigurationChanged", newConfig);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_configuration_changed}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_configuration_changed", newConfig);
       } else {
-        {super.onConfigurationChanged(newConfig); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_configuration_changed}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_configuration_changed", newConfig);
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onConfigurationChanged", newConfig);
+        }
       }
     }
   }
@@ -131,13 +130,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onContentChanged(); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_content_changed}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_content_changed");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onContentChanged}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onContentChanged");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onContentChanged}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onContentChanged");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_content_changed}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_content_changed");
       } else {
-        {super.onContentChanged(); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_content_changed}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_content_changed");
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onContentChanged");
+        }
       }
     }
   }
@@ -150,13 +153,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onContextItemSelected(item);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_context_item_selected}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_context_item_selected", item);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onContextItemSelected}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onContextItemSelected", item);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onContextItemSelected}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onContextItemSelected", item);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_context_item_selected}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_context_item_selected", item);
       } else {
-        return super.onContextItemSelected(item);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_context_item_selected}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_context_item_selected", item);
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onContextItemSelected", item);
+        }
       }
     }
   }
@@ -169,13 +176,43 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onContextMenuClosed(menu); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_context_menu_closed}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_context_menu_closed", menu);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onContextMenuClosed}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onContextMenuClosed", menu);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onContextMenuClosed}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onContextMenuClosed", menu);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_context_menu_closed}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_context_menu_closed", menu);
       } else {
-        {super.onContextMenuClosed(menu); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_context_menu_closed}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_context_menu_closed", menu);
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onContextMenuClosed", menu);
+        }
+      }
+    }
+  }
+
+  public void onCreate(android.os.Bundle savedInstanceState) {
+    if (ScriptLoader.isCalledFromJRuby()) {super.onCreate(savedInstanceState); return;}
+    if (preOnCreate(savedInstanceState)) {super.onCreate(savedInstanceState); return;};
+if (JRubyAdapter.isInitialized() && scriptInfo.isReadyToLoad()) {
+        ScriptLoader.loadScript(this);
+    } else {
+        {super.onCreate(savedInstanceState); return;}
+    }
+
+    String rubyClassName = scriptInfo.getRubyClassName();
+    if (rubyClassName == null) {super.onCreate(savedInstanceState); return;}
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreate}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onCreate", savedInstanceState);
+    } else {
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_create", savedInstanceState);
+      } else {
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_create}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_create", savedInstanceState);
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onCreate", savedInstanceState);
+        }
       }
     }
   }
@@ -188,13 +225,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onCreateContextMenu(menu, v, menuInfo); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_context_menu}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_create_context_menu", new Object[]{menu, v, menuInfo});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreateContextMenu}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onCreateContextMenu", new Object[]{menu, v, menuInfo});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreateContextMenu}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onCreateContextMenu", new Object[]{menu, v, menuInfo});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_context_menu}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_create_context_menu", new Object[]{menu, v, menuInfo});
       } else {
-        {super.onCreateContextMenu(menu, v, menuInfo); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_create_context_menu}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_create_context_menu", new Object[]{menu, v, menuInfo});
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onCreateContextMenu", new Object[]{menu, v, menuInfo});
+        }
       }
     }
   }
@@ -207,32 +248,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onCreateDescription();
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_description}")) {
-      return (java.lang.CharSequence) JRubyAdapter.runRubyMethod(java.lang.CharSequence.class, scriptInfo.getRubyInstance(), "on_create_description");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreateDescription}")) {
+      return (java.lang.CharSequence) JRubyAdapter.runRubyMethod(java.lang.CharSequence.class, scriptInfo.getRubyInstance(), "onCreateDescription");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreateDescription}")) {
-        return (java.lang.CharSequence) JRubyAdapter.runRubyMethod(java.lang.CharSequence.class, scriptInfo.getRubyInstance(), "onCreateDescription");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_description}")) {
+        return (java.lang.CharSequence) JRubyAdapter.runRubyMethod(java.lang.CharSequence.class, scriptInfo.getRubyInstance(), "on_create_description");
       } else {
-        return super.onCreateDescription();
-      }
-    }
-  }
-
-  public android.app.Dialog onCreateDialog(int id) {
-    if (ScriptLoader.isCalledFromJRuby()) return super.onCreateDialog(id);
-    if (!JRubyAdapter.isInitialized()) {
-      Log.i("Method called before JRuby runtime was initialized: RubotoActivity#onCreateDialog");
-      return super.onCreateDialog(id);
-    }
-    String rubyClassName = scriptInfo.getRubyClassName();
-    if (rubyClassName == null) return super.onCreateDialog(id);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_dialog}")) {
-      return (android.app.Dialog) JRubyAdapter.runRubyMethod(android.app.Dialog.class, scriptInfo.getRubyInstance(), "on_create_dialog", id);
-    } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreateDialog}")) {
-        return (android.app.Dialog) JRubyAdapter.runRubyMethod(android.app.Dialog.class, scriptInfo.getRubyInstance(), "onCreateDialog", id);
-      } else {
-        return super.onCreateDialog(id);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_create_description}")) {
+          return (java.lang.CharSequence) JRubyAdapter.runRubyMethod(java.lang.CharSequence.class, scriptInfo.getRubyInstance(), "on_create_description");
+        } else {
+          return (java.lang.CharSequence) JRubyAdapter.runRubyMethod(java.lang.CharSequence.class, scriptInfo.getRubyInstance(), "onCreateDescription");
+        }
       }
     }
   }
@@ -245,13 +271,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onCreateOptionsMenu(menu);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_options_menu}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_create_options_menu", menu);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreateOptionsMenu}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onCreateOptionsMenu", menu);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreateOptionsMenu}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onCreateOptionsMenu", menu);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_options_menu}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_create_options_menu", menu);
       } else {
-        return super.onCreateOptionsMenu(menu);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_create_options_menu}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_create_options_menu", menu);
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onCreateOptionsMenu", menu);
+        }
       }
     }
   }
@@ -264,13 +294,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onCreatePanelMenu(featureId, menu);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_panel_menu}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_create_panel_menu", new Object[]{featureId, menu});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreatePanelMenu}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onCreatePanelMenu", new Object[]{featureId, menu});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreatePanelMenu}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onCreatePanelMenu", new Object[]{featureId, menu});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_panel_menu}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_create_panel_menu", new Object[]{featureId, menu});
       } else {
-        return super.onCreatePanelMenu(featureId, menu);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_create_panel_menu}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_create_panel_menu", new Object[]{featureId, menu});
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onCreatePanelMenu", new Object[]{featureId, menu});
+        }
       }
     }
   }
@@ -283,13 +317,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onCreatePanelView(featureId);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_panel_view}")) {
-      return (android.view.View) JRubyAdapter.runRubyMethod(android.view.View.class, scriptInfo.getRubyInstance(), "on_create_panel_view", featureId);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreatePanelView}")) {
+      return (android.view.View) JRubyAdapter.runRubyMethod(android.view.View.class, scriptInfo.getRubyInstance(), "onCreatePanelView", featureId);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreatePanelView}")) {
-        return (android.view.View) JRubyAdapter.runRubyMethod(android.view.View.class, scriptInfo.getRubyInstance(), "onCreatePanelView", featureId);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_panel_view}")) {
+        return (android.view.View) JRubyAdapter.runRubyMethod(android.view.View.class, scriptInfo.getRubyInstance(), "on_create_panel_view", featureId);
       } else {
-        return super.onCreatePanelView(featureId);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_create_panel_view}")) {
+          return (android.view.View) JRubyAdapter.runRubyMethod(android.view.View.class, scriptInfo.getRubyInstance(), "on_create_panel_view", featureId);
+        } else {
+          return (android.view.View) JRubyAdapter.runRubyMethod(android.view.View.class, scriptInfo.getRubyInstance(), "onCreatePanelView", featureId);
+        }
       }
     }
   }
@@ -302,13 +340,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onCreateThumbnail(outBitmap, canvas);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_thumbnail}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_create_thumbnail", new Object[]{outBitmap, canvas});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreateThumbnail}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onCreateThumbnail", new Object[]{outBitmap, canvas});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreateThumbnail}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onCreateThumbnail", new Object[]{outBitmap, canvas});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_thumbnail}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_create_thumbnail", new Object[]{outBitmap, canvas});
       } else {
-        return super.onCreateThumbnail(outBitmap, canvas);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_create_thumbnail}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_create_thumbnail", new Object[]{outBitmap, canvas});
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onCreateThumbnail", new Object[]{outBitmap, canvas});
+        }
       }
     }
   }
@@ -321,13 +363,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onCreateView(name, context, attrs);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_view}")) {
-      return (android.view.View) JRubyAdapter.runRubyMethod(android.view.View.class, scriptInfo.getRubyInstance(), "on_create_view", new Object[]{name, context, attrs});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreateView}")) {
+      return (android.view.View) JRubyAdapter.runRubyMethod(android.view.View.class, scriptInfo.getRubyInstance(), "onCreateView", new Object[]{name, context, attrs});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreateView}")) {
-        return (android.view.View) JRubyAdapter.runRubyMethod(android.view.View.class, scriptInfo.getRubyInstance(), "onCreateView", new Object[]{name, context, attrs});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_view}")) {
+        return (android.view.View) JRubyAdapter.runRubyMethod(android.view.View.class, scriptInfo.getRubyInstance(), "on_create_view", new Object[]{name, context, attrs});
       } else {
-        return super.onCreateView(name, context, attrs);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_create_view}")) {
+          return (android.view.View) JRubyAdapter.runRubyMethod(android.view.View.class, scriptInfo.getRubyInstance(), "on_create_view", new Object[]{name, context, attrs});
+        } else {
+          return (android.view.View) JRubyAdapter.runRubyMethod(android.view.View.class, scriptInfo.getRubyInstance(), "onCreateView", new Object[]{name, context, attrs});
+        }
       }
     }
   }
@@ -340,15 +386,20 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onDestroy(); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_destroy}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_destroy");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onDestroy}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onDestroy");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onDestroy}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onDestroy");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_destroy}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_destroy");
       } else {
-        {super.onDestroy(); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_destroy}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_destroy");
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onDestroy");
+        }
       }
     }
+    ScriptLoader.unloadScript(this);
   }
 
   public boolean onKeyDown(int keyCode, android.view.KeyEvent event) {
@@ -359,13 +410,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onKeyDown(keyCode, event);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_key_down}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_key_down", new Object[]{keyCode, event});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onKeyDown}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onKeyDown", new Object[]{keyCode, event});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onKeyDown}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onKeyDown", new Object[]{keyCode, event});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_key_down}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_key_down", new Object[]{keyCode, event});
       } else {
-        return super.onKeyDown(keyCode, event);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_key_down}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_key_down", new Object[]{keyCode, event});
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onKeyDown", new Object[]{keyCode, event});
+        }
       }
     }
   }
@@ -378,13 +433,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onKeyMultiple(keyCode, repeatCount, event);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_key_multiple}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_key_multiple", new Object[]{keyCode, repeatCount, event});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onKeyMultiple}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onKeyMultiple", new Object[]{keyCode, repeatCount, event});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onKeyMultiple}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onKeyMultiple", new Object[]{keyCode, repeatCount, event});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_key_multiple}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_key_multiple", new Object[]{keyCode, repeatCount, event});
       } else {
-        return super.onKeyMultiple(keyCode, repeatCount, event);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_key_multiple}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_key_multiple", new Object[]{keyCode, repeatCount, event});
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onKeyMultiple", new Object[]{keyCode, repeatCount, event});
+        }
       }
     }
   }
@@ -397,13 +456,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onKeyUp(keyCode, event);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_key_up}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_key_up", new Object[]{keyCode, event});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onKeyUp}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onKeyUp", new Object[]{keyCode, event});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onKeyUp}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onKeyUp", new Object[]{keyCode, event});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_key_up}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_key_up", new Object[]{keyCode, event});
       } else {
-        return super.onKeyUp(keyCode, event);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_key_up}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_key_up", new Object[]{keyCode, event});
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onKeyUp", new Object[]{keyCode, event});
+        }
       }
     }
   }
@@ -416,13 +479,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onLowMemory(); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_low_memory}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_low_memory");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onLowMemory}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onLowMemory");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onLowMemory}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onLowMemory");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_low_memory}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_low_memory");
       } else {
-        {super.onLowMemory(); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_low_memory}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_low_memory");
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onLowMemory");
+        }
       }
     }
   }
@@ -435,13 +502,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onMenuItemSelected(featureId, item);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_menu_item_selected}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_menu_item_selected", new Object[]{featureId, item});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onMenuItemSelected}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onMenuItemSelected", new Object[]{featureId, item});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onMenuItemSelected}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onMenuItemSelected", new Object[]{featureId, item});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_menu_item_selected}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_menu_item_selected", new Object[]{featureId, item});
       } else {
-        return super.onMenuItemSelected(featureId, item);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_menu_item_selected}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_menu_item_selected", new Object[]{featureId, item});
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onMenuItemSelected", new Object[]{featureId, item});
+        }
       }
     }
   }
@@ -454,13 +525,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onMenuOpened(featureId, menu);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_menu_opened}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_menu_opened", new Object[]{featureId, menu});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onMenuOpened}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onMenuOpened", new Object[]{featureId, menu});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onMenuOpened}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onMenuOpened", new Object[]{featureId, menu});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_menu_opened}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_menu_opened", new Object[]{featureId, menu});
       } else {
-        return super.onMenuOpened(featureId, menu);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_menu_opened}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_menu_opened", new Object[]{featureId, menu});
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onMenuOpened", new Object[]{featureId, menu});
+        }
       }
     }
   }
@@ -473,13 +548,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onNewIntent(intent); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_new_intent}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_new_intent", intent);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onNewIntent}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onNewIntent", intent);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onNewIntent}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onNewIntent", intent);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_new_intent}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_new_intent", intent);
       } else {
-        {super.onNewIntent(intent); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_new_intent}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_new_intent", intent);
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onNewIntent", intent);
+        }
       }
     }
   }
@@ -492,13 +571,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onOptionsItemSelected(item);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_options_item_selected}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_options_item_selected", item);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onOptionsItemSelected}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onOptionsItemSelected", item);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onOptionsItemSelected}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onOptionsItemSelected", item);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_options_item_selected}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_options_item_selected", item);
       } else {
-        return super.onOptionsItemSelected(item);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_options_item_selected}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_options_item_selected", item);
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onOptionsItemSelected", item);
+        }
       }
     }
   }
@@ -511,13 +594,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onOptionsMenuClosed(menu); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_options_menu_closed}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_options_menu_closed", menu);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onOptionsMenuClosed}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onOptionsMenuClosed", menu);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onOptionsMenuClosed}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onOptionsMenuClosed", menu);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_options_menu_closed}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_options_menu_closed", menu);
       } else {
-        {super.onOptionsMenuClosed(menu); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_options_menu_closed}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_options_menu_closed", menu);
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onOptionsMenuClosed", menu);
+        }
       }
     }
   }
@@ -530,13 +617,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onPanelClosed(featureId, menu); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_panel_closed}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_panel_closed", new Object[]{featureId, menu});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onPanelClosed}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPanelClosed", new Object[]{featureId, menu});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onPanelClosed}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPanelClosed", new Object[]{featureId, menu});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_panel_closed}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_panel_closed", new Object[]{featureId, menu});
       } else {
-        {super.onPanelClosed(featureId, menu); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_panel_closed}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_panel_closed", new Object[]{featureId, menu});
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPanelClosed", new Object[]{featureId, menu});
+        }
       }
     }
   }
@@ -549,13 +640,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onPause(); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_pause}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_pause");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onPause}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPause");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onPause}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPause");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_pause}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_pause");
       } else {
-        {super.onPause(); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_pause}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_pause");
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPause");
+        }
       }
     }
   }
@@ -568,13 +663,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onPostCreate(savedInstanceState); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_post_create}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_post_create", savedInstanceState);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onPostCreate}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPostCreate", savedInstanceState);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onPostCreate}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPostCreate", savedInstanceState);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_post_create}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_post_create", savedInstanceState);
       } else {
-        {super.onPostCreate(savedInstanceState); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_post_create}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_post_create", savedInstanceState);
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPostCreate", savedInstanceState);
+        }
       }
     }
   }
@@ -587,32 +686,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onPostResume(); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_post_resume}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_post_resume");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onPostResume}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPostResume");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onPostResume}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPostResume");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_post_resume}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_post_resume");
       } else {
-        {super.onPostResume(); return;}
-      }
-    }
-  }
-
-  public void onPrepareDialog(int id, android.app.Dialog dialog) {
-    if (ScriptLoader.isCalledFromJRuby()) {super.onPrepareDialog(id, dialog); return;}
-    if (!JRubyAdapter.isInitialized()) {
-      Log.i("Method called before JRuby runtime was initialized: RubotoActivity#onPrepareDialog");
-      {super.onPrepareDialog(id, dialog); return;}
-    }
-    String rubyClassName = scriptInfo.getRubyClassName();
-    if (rubyClassName == null) {super.onPrepareDialog(id, dialog); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_prepare_dialog}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_prepare_dialog", new Object[]{id, dialog});
-    } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onPrepareDialog}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPrepareDialog", new Object[]{id, dialog});
-      } else {
-        {super.onPrepareDialog(id, dialog); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_post_resume}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_post_resume");
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPostResume");
+        }
       }
     }
   }
@@ -625,13 +709,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onPrepareOptionsMenu(menu);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_prepare_options_menu}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_prepare_options_menu", menu);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onPrepareOptionsMenu}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onPrepareOptionsMenu", menu);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onPrepareOptionsMenu}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onPrepareOptionsMenu", menu);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_prepare_options_menu}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_prepare_options_menu", menu);
       } else {
-        return super.onPrepareOptionsMenu(menu);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_prepare_options_menu}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_prepare_options_menu", menu);
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onPrepareOptionsMenu", menu);
+        }
       }
     }
   }
@@ -644,13 +732,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onPreparePanel(featureId, view, menu);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_prepare_panel}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_prepare_panel", new Object[]{featureId, view, menu});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onPreparePanel}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onPreparePanel", new Object[]{featureId, view, menu});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onPreparePanel}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onPreparePanel", new Object[]{featureId, view, menu});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_prepare_panel}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_prepare_panel", new Object[]{featureId, view, menu});
       } else {
-        return super.onPreparePanel(featureId, view, menu);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_prepare_panel}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_prepare_panel", new Object[]{featureId, view, menu});
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onPreparePanel", new Object[]{featureId, view, menu});
+        }
       }
     }
   }
@@ -663,13 +755,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onRestart(); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_restart}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_restart");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onRestart}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onRestart");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onRestart}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onRestart");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_restart}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_restart");
       } else {
-        {super.onRestart(); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_restart}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_restart");
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onRestart");
+        }
       }
     }
   }
@@ -682,13 +778,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onRestoreInstanceState(savedInstanceState); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_restore_instance_state}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_restore_instance_state", savedInstanceState);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onRestoreInstanceState}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onRestoreInstanceState", savedInstanceState);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onRestoreInstanceState}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onRestoreInstanceState", savedInstanceState);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_restore_instance_state}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_restore_instance_state", savedInstanceState);
       } else {
-        {super.onRestoreInstanceState(savedInstanceState); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_restore_instance_state}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_restore_instance_state", savedInstanceState);
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onRestoreInstanceState", savedInstanceState);
+        }
       }
     }
   }
@@ -701,13 +801,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onResume(); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_resume}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_resume");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onResume}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onResume");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onResume}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onResume");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_resume}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_resume");
       } else {
-        {super.onResume(); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_resume}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_resume");
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onResume");
+        }
       }
     }
   }
@@ -720,13 +824,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onRetainNonConfigurationInstance();
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_retain_non_configuration_instance}")) {
-      return (java.lang.Object) JRubyAdapter.runRubyMethod(java.lang.Object.class, scriptInfo.getRubyInstance(), "on_retain_non_configuration_instance");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onRetainNonConfigurationInstance}")) {
+      return (java.lang.Object) JRubyAdapter.runRubyMethod(java.lang.Object.class, scriptInfo.getRubyInstance(), "onRetainNonConfigurationInstance");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onRetainNonConfigurationInstance}")) {
-        return (java.lang.Object) JRubyAdapter.runRubyMethod(java.lang.Object.class, scriptInfo.getRubyInstance(), "onRetainNonConfigurationInstance");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_retain_non_configuration_instance}")) {
+        return (java.lang.Object) JRubyAdapter.runRubyMethod(java.lang.Object.class, scriptInfo.getRubyInstance(), "on_retain_non_configuration_instance");
       } else {
-        return super.onRetainNonConfigurationInstance();
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_retain_non_configuration_instance}")) {
+          return (java.lang.Object) JRubyAdapter.runRubyMethod(java.lang.Object.class, scriptInfo.getRubyInstance(), "on_retain_non_configuration_instance");
+        } else {
+          return (java.lang.Object) JRubyAdapter.runRubyMethod(java.lang.Object.class, scriptInfo.getRubyInstance(), "onRetainNonConfigurationInstance");
+        }
       }
     }
   }
@@ -739,13 +847,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onSaveInstanceState(outState); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_save_instance_state}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_save_instance_state", outState);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onSaveInstanceState}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onSaveInstanceState", outState);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onSaveInstanceState}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onSaveInstanceState", outState);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_save_instance_state}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_save_instance_state", outState);
       } else {
-        {super.onSaveInstanceState(outState); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_save_instance_state}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_save_instance_state", outState);
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onSaveInstanceState", outState);
+        }
       }
     }
   }
@@ -758,13 +870,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onSearchRequested();
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_search_requested}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_search_requested");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onSearchRequested}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onSearchRequested");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onSearchRequested}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onSearchRequested");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_search_requested}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_search_requested");
       } else {
-        return super.onSearchRequested();
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_search_requested}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_search_requested");
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onSearchRequested");
+        }
       }
     }
   }
@@ -777,13 +893,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onStart(); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_start}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_start");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onStart}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onStart");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onStart}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onStart");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_start}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_start");
       } else {
-        {super.onStart(); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_start}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_start");
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onStart");
+        }
       }
     }
   }
@@ -796,13 +916,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onStop(); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_stop}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_stop");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onStop}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onStop");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onStop}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onStop");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_stop}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_stop");
       } else {
-        {super.onStop(); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_stop}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_stop");
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onStop");
+        }
       }
     }
   }
@@ -815,13 +939,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onTitleChanged(title, color); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_title_changed}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_title_changed", new Object[]{title, color});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onTitleChanged}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onTitleChanged", new Object[]{title, color});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onTitleChanged}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onTitleChanged", new Object[]{title, color});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_title_changed}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_title_changed", new Object[]{title, color});
       } else {
-        {super.onTitleChanged(title, color); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_title_changed}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_title_changed", new Object[]{title, color});
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onTitleChanged", new Object[]{title, color});
+        }
       }
     }
   }
@@ -834,13 +962,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onTouchEvent(event);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_touch_event}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_touch_event", event);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onTouchEvent}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onTouchEvent", event);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onTouchEvent}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onTouchEvent", event);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_touch_event}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_touch_event", event);
       } else {
-        return super.onTouchEvent(event);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_touch_event}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_touch_event", event);
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onTouchEvent", event);
+        }
       }
     }
   }
@@ -853,13 +985,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onTrackballEvent(event);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_trackball_event}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_trackball_event", event);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onTrackballEvent}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onTrackballEvent", event);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onTrackballEvent}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onTrackballEvent", event);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_trackball_event}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_trackball_event", event);
       } else {
-        return super.onTrackballEvent(event);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_trackball_event}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_trackball_event", event);
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onTrackballEvent", event);
+        }
       }
     }
   }
@@ -872,13 +1008,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onWindowAttributesChanged(params); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_window_attributes_changed}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_window_attributes_changed", params);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onWindowAttributesChanged}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onWindowAttributesChanged", params);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onWindowAttributesChanged}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onWindowAttributesChanged", params);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_window_attributes_changed}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_window_attributes_changed", params);
       } else {
-        {super.onWindowAttributesChanged(params); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_window_attributes_changed}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_window_attributes_changed", params);
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onWindowAttributesChanged", params);
+        }
       }
     }
   }
@@ -891,13 +1031,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onWindowFocusChanged(hasFocus); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_window_focus_changed}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_window_focus_changed", hasFocus);
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onWindowFocusChanged}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onWindowFocusChanged", hasFocus);
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onWindowFocusChanged}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onWindowFocusChanged", hasFocus);
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_window_focus_changed}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_window_focus_changed", hasFocus);
       } else {
-        {super.onWindowFocusChanged(hasFocus); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_window_focus_changed}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_window_focus_changed", hasFocus);
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onWindowFocusChanged", hasFocus);
+        }
       }
     }
   }
@@ -910,13 +1054,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onUserInteraction(); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_user_interaction}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_user_interaction");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onUserInteraction}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onUserInteraction");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onUserInteraction}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onUserInteraction");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_user_interaction}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_user_interaction");
       } else {
-        {super.onUserInteraction(); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_user_interaction}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_user_interaction");
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onUserInteraction");
+        }
       }
     }
   }
@@ -929,13 +1077,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onUserLeaveHint(); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_user_leave_hint}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_user_leave_hint");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onUserLeaveHint}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onUserLeaveHint");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onUserLeaveHint}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onUserLeaveHint");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_user_leave_hint}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_user_leave_hint");
       } else {
-        {super.onUserLeaveHint(); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_user_leave_hint}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_user_leave_hint");
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onUserLeaveHint");
+        }
       }
     }
   }
@@ -948,13 +1100,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onAttachedToWindow(); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_attached_to_window}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_attached_to_window");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onAttachedToWindow}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onAttachedToWindow");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onAttachedToWindow}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onAttachedToWindow");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_attached_to_window}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_attached_to_window");
       } else {
-        {super.onAttachedToWindow(); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_attached_to_window}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_attached_to_window");
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onAttachedToWindow");
+        }
       }
     }
   }
@@ -967,13 +1123,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onBackPressed(); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_back_pressed}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_back_pressed");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onBackPressed}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onBackPressed");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onBackPressed}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onBackPressed");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_back_pressed}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_back_pressed");
       } else {
-        {super.onBackPressed(); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_back_pressed}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_back_pressed");
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onBackPressed");
+        }
       }
     }
   }
@@ -986,13 +1146,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onDetachedFromWindow(); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_detached_from_window}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_detached_from_window");
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onDetachedFromWindow}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onDetachedFromWindow");
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onDetachedFromWindow}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onDetachedFromWindow");
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_detached_from_window}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_detached_from_window");
       } else {
-        {super.onDetachedFromWindow(); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_detached_from_window}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_detached_from_window");
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onDetachedFromWindow");
+        }
       }
     }
   }
@@ -1005,13 +1169,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onKeyLongPress(keyCode, event);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_key_long_press}")) {
-      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_key_long_press", new Object[]{keyCode, event});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onKeyLongPress}")) {
+      return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onKeyLongPress", new Object[]{keyCode, event});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onKeyLongPress}")) {
-        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onKeyLongPress", new Object[]{keyCode, event});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_key_long_press}")) {
+        return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_key_long_press", new Object[]{keyCode, event});
       } else {
-        return super.onKeyLongPress(keyCode, event);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_key_long_press}")) {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "on_key_long_press", new Object[]{keyCode, event});
+        } else {
+          return (Boolean) JRubyAdapter.runRubyMethod(Boolean.class, scriptInfo.getRubyInstance(), "onKeyLongPress", new Object[]{keyCode, event});
+        }
       }
     }
   }
@@ -1024,13 +1192,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) return super.onCreateDialog(id, args);
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_dialog}")) {
-      return (android.app.Dialog) JRubyAdapter.runRubyMethod(android.app.Dialog.class, scriptInfo.getRubyInstance(), "on_create_dialog", new Object[]{id, args});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreateDialog}")) {
+      return (android.app.Dialog) JRubyAdapter.runRubyMethod(android.app.Dialog.class, scriptInfo.getRubyInstance(), "onCreateDialog", new Object[]{id, args});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onCreateDialog}")) {
-        return (android.app.Dialog) JRubyAdapter.runRubyMethod(android.app.Dialog.class, scriptInfo.getRubyInstance(), "onCreateDialog", new Object[]{id, args});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_create_dialog}")) {
+        return (android.app.Dialog) JRubyAdapter.runRubyMethod(android.app.Dialog.class, scriptInfo.getRubyInstance(), "on_create_dialog", new Object[]{id, args});
       } else {
-        return super.onCreateDialog(id, args);
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_create_dialog}")) {
+          return (android.app.Dialog) JRubyAdapter.runRubyMethod(android.app.Dialog.class, scriptInfo.getRubyInstance(), "on_create_dialog", new Object[]{id, args});
+        } else {
+          return (android.app.Dialog) JRubyAdapter.runRubyMethod(android.app.Dialog.class, scriptInfo.getRubyInstance(), "onCreateDialog", new Object[]{id, args});
+        }
       }
     }
   }
@@ -1043,13 +1215,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onPrepareDialog(id, dialog, args); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_prepare_dialog}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_prepare_dialog", new Object[]{id, dialog, args});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onPrepareDialog}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPrepareDialog", new Object[]{id, dialog, args});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onPrepareDialog}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPrepareDialog", new Object[]{id, dialog, args});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_prepare_dialog}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_prepare_dialog", new Object[]{id, dialog, args});
       } else {
-        {super.onPrepareDialog(id, dialog, args); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_prepare_dialog}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_prepare_dialog", new Object[]{id, dialog, args});
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onPrepareDialog", new Object[]{id, dialog, args});
+        }
       }
     }
   }
@@ -1062,13 +1238,17 @@ public class RubotoActivity extends android.app.Activity implements org.ruboto.R
     }
     String rubyClassName = scriptInfo.getRubyClassName();
     if (rubyClassName == null) {super.onApplyThemeResource(theme, resid, first); return;}
-    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_apply_theme_resource}")) {
-      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_apply_theme_resource", new Object[]{theme, resid, first});
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onApplyThemeResource}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onApplyThemeResource", new Object[]{theme, resid, first});
     } else {
-      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onApplyThemeResource}")) {
-        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onApplyThemeResource", new Object[]{theme, resid, first});
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_apply_theme_resource}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_apply_theme_resource", new Object[]{theme, resid, first});
       } else {
-        {super.onApplyThemeResource(theme, resid, first); return;}
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_apply_theme_resource}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_apply_theme_resource", new Object[]{theme, resid, first});
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onApplyThemeResource", new Object[]{theme, resid, first});
+        }
       }
     }
   }

@@ -6,38 +6,28 @@ import org.ruboto.ScriptLoader;
 
 public class RubotoBroadcastReceiver extends android.content.BroadcastReceiver implements org.ruboto.RubotoComponent {
     private final ScriptInfo scriptInfo = new ScriptInfo();
-    private boolean scriptLoaded = false;
 
     public ScriptInfo getScriptInfo() {
         return scriptInfo;
     }
 
     public RubotoBroadcastReceiver() {
-        this(null);
-    }
-
-    public RubotoBroadcastReceiver(String name) {
         super();
-
-        if (name != null) {
-            scriptInfo.setScriptName(name);
-            if (JRubyAdapter.isInitialized()) {
-                ScriptLoader.loadScript(this);
-                scriptLoaded = true;
-            }
+        scriptInfo.setRubyClassName(getClass().getSimpleName());
+        if (JRubyAdapter.isInitialized()) {
+            ScriptLoader.loadScript(this);
         }
     }
 
     public void onReceive(android.content.Context context, android.content.Intent intent) {
         try {
-            Log.d("onReceive: " + this + " " + ScriptLoader.isCalledFromJRuby() + " " + scriptLoaded);
+            Log.d("onReceive: " + this + " " + ScriptLoader.isCalledFromJRuby());
             if (ScriptLoader.isCalledFromJRuby()) {
                 return;
             }
-            if (!scriptLoaded) {
+            if (!scriptInfo.isLoaded()) {
                 if (JRubyAdapter.setUpJRuby(context)) {
                     ScriptLoader.loadScript(this);
-                    scriptLoaded = true;
                 } else {
                     // FIXME(uwe): What to do if the Ruboto Core platform is missing?
                 }

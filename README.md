@@ -14,3 +14,4 @@ by generating it with the ```--with-jruby``` option or adding it later with the
 
 * Updated to JRuby 1.7.10
 * Updated to Ruboto 1.0.2
+* Updated packaged ARJDBC to version 1.3.6

@@ -77,7 +77,7 @@ end
 PROJECT_DIR = File.expand_path('..', File.dirname(__FILE__))
 UPDATE_MARKER_FILE = File.join(PROJECT_DIR, 'bin', 'LAST_UPDATE')
 BUNDLE_JAR = File.expand_path 'libs/bundle.jar'
-BUNDLE_PATH = File.expand_path 'bin/bundle'
+BUNDLE_PATH = File.join(PROJECT_DIR, 'bin', 'bundle')
 MANIFEST_FILE = File.expand_path 'AndroidManifest.xml'
 PROJECT_PROPS_FILE = File.expand_path 'project.properties'
 RUBOTO_CONFIG_FILE = File.expand_path 'ruboto.yml'
@@ -239,10 +239,18 @@ file RUBOTO_CONFIG_FILE
 task :jruby_adapter => JRUBY_ADAPTER_FILE
 file JRUBY_ADAPTER_FILE => RUBOTO_CONFIG_FILE do
   require 'yaml'
+
+  ruboto_yml = (YAML.load(File.read(RUBOTO_CONFIG_FILE)) || {})
+  source = File.read(JRUBY_ADAPTER_FILE)
+
+  #
+  # HeapAlloc
+  #
+  comment = ''
   marker_topic ='Ruboto HeapAlloc'
   begin_marker = "// BEGIN #{marker_topic}"
   end_marker = "// END #{marker_topic}"
-  unless (heap_alloc = YAML.load(File.read(RUBOTO_CONFIG_FILE))['heap_alloc'])
+  unless (heap_alloc = ruboto_yml['heap_alloc'])
     heap_alloc = 13
     comment = '// '
   end
@@ -253,9 +261,31 @@ file JRUBY_ADAPTER_FILE => RUBOTO_CONFIG_FILE do
             #{comment}arrayForHeapAllocation = null;
             #{end_marker}
 EOF
-  source = File.read(JRUBY_ADAPTER_FILE)
-  heap_alloc_pattern = %r{^\s*#{begin_marker}\n.*^\s*#{end_marker}\n}m
-  File.open(JRUBY_ADAPTER_FILE, 'w') { |f| f << source.sub(heap_alloc_pattern, config) }
+  pattern = %r{^\s*#{begin_marker}\n.*^\s*#{end_marker}\n}m
+  source = source.sub(pattern, config)
+
+  #
+  # RubyVersion
+  #
+  comment = ''
+  marker_topic ='Ruboto RubyVersion'
+  begin_marker = "// BEGIN #{marker_topic}"
+  end_marker = "// END #{marker_topic}"
+  unless (ruby_version = ruboto_yml['ruby_version'])
+    ruby_version = 2.0
+    comment = '// '
+  end
+  ruby_version = ruby_version.to_s
+  ruby_version['.'] = '_'
+  config = <<EOF
+            #{begin_marker}
+            #{comment}System.setProperty("jruby.compat.version", "RUBY#{ruby_version}"); // RUBY1_9 is the default in JRuby 1.7
+            #{end_marker}
+EOF
+  pattern = %r{^\s*#{begin_marker}\n.*^\s*#{end_marker}\n}m
+  source = source.sub(pattern, config)
+
+  File.open(JRUBY_ADAPTER_FILE, 'w') { |f| f << source }
 end
 
 file APK_FILE => APK_DEPENDENCIES do |t|
@@ -619,8 +649,10 @@ def package_installed?(test = false)
   package_name = "#{package}#{'.tests' if test}"
   loop do
     path_line = `adb shell pm path #{package_name}`.chomp
+    path_line.gsub! /^WARNING:.*$/, ''
     return nil if $? == 0 && path_line.empty?
     break if $? == 0 && path_line =~ /^package:(.*)$/
+    puts path_line
     sleep 0.5
   end
   path = $1
@@ -666,7 +698,17 @@ def build_apk(t, release)
   true
 end
 
+def wait_for_valid_device
+  while `adb shell echo "ping"`.strip != 'ping'
+    `adb kill-server`
+    `adb devices`
+    sleep 5
+  end
+end
+
 def install_apk
+  wait_for_valid_device
+
   failure_pattern = /^Failure \[(.*)\]/
   success_pattern = /^Success/
   case package_installed?
@@ -741,7 +783,8 @@ def uninstall_apk
 end
 
 def update_scripts
-  `adb shell mkdir -p #{scripts_path}` if !device_path_exists?(scripts_path)
+  puts(`adb shell mkdir -p #{scripts_path}`) unless device_path_exists?(scripts_path)
+  raise "Unable to create device scripts dir: #{scripts_path}" unless device_path_exists?(scripts_path)
   last_update = File.exists?(UPDATE_MARKER_FILE) ? Time.parse(File.read(UPDATE_MARKER_FILE)) : Time.parse('1970-01-01T00:00:00')
   Dir.chdir('src') do
     source_files = Dir['**/*.rb']
@@ -769,8 +812,8 @@ end
 
 # Triggers reload of updated scripts and restart of the current activity
 def reload_scripts(scripts)
-  s = scripts.map{|s| s.gsub(/[&;]/){|m| "&#{m[0]}"}}.join(';')
-  cmd = %Q{adb shell am broadcast -a android.intent.action.VIEW -e reload "#{s}"}
+  s = scripts.map{|s| s.gsub(/[&;]/){|m| "&#{m[0]}"}}.join('\;')
+  cmd = %Q{adb shell am broadcast -a android.intent.action.VIEW -e reload '#{s}'}
   puts cmd
   system cmd
 end

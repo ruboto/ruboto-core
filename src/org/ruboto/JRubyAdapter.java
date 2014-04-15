@@ -134,7 +134,9 @@ public class JRubyAdapter {
             Log.d("Setting up JRuby runtime (" + (isDebugBuild ? "DEBUG" : "RELEASE") + ")");
             System.setProperty("jruby.backtrace.style", "normal"); // normal raw full mri
             System.setProperty("jruby.bytecode.version", "1.6");
+            // BEGIN Ruboto RubyVersion
             // System.setProperty("jruby.compat.version", "RUBY2_0"); // RUBY1_9 is the default in JRuby 1.7
+            // END Ruboto RubyVersion
             // System.setProperty("jruby.compile.backend", "DALVIK");
             System.setProperty("jruby.compile.mode", "OFF"); // OFF OFFIR JITIR? FORCE FORCEIR
             System.setProperty("jruby.interfaces.useProxy", "true");
@@ -377,14 +379,19 @@ public class JRubyAdapter {
         File storageDir = null;
         if (isDebugBuild()) {
             storageDir = context.getExternalFilesDir(null);
-            if (storageDir == null || (!storageDir.exists() && !storageDir.mkdirs())) {
+            if (storageDir == null) {
                 Log.e("Development mode active, but sdcard is not available.  Make sure you have added\n<uses-permission android:name='android.permission.WRITE_EXTERNAL_STORAGE' />\nto your AndroidManifest.xml file.");
                 storageDir = context.getFilesDir();
             }
         } else {
             storageDir = context.getFilesDir();
         }
-        return storageDir.getAbsolutePath() + "/scripts";
+        File scriptsDir = new File(storageDir, "scripts");
+        if ((!scriptsDir.exists() && !scriptsDir.mkdirs())) {
+            Log.e("Unable to create the scripts dir.");
+            scriptsDir = new File(context.getFilesDir(), "scripts");
+        }
+        return scriptsDir.getAbsolutePath();
     }
 
     private static void setDebugBuild(Context context) {

@@ -395,25 +395,27 @@ file BUNDLE_JAR => [GEM_FILE, GEM_LOCK_FILE] do
   puts "Generating #{BUNDLE_JAR}"
   require 'bundler'
   # FIXME(uwe): Issue #547 https://github.com/ruboto/ruboto/issues/547
-  if true || Gem::Version.new(Bundler::VERSION) <= Gem::Version.new('1.5.0')
+  if true || Gem::Version.new(Bundler::VERSION) <= Gem::Version.new('1.6.3')
     require 'bundler/vendored_thor'
 
     # Store original RubyGems/Bundler environment
     platforms = Gem.platforms
     ruby_engine = defined?(RUBY_ENGINE) && RUBY_ENGINE
-    gem_paths = {'GEM_HOME' => Gem.path, 'GEM_PATH' => Gem.dir}
+    env_home = ENV['GEM_HOME']
+    env_path = ENV['GEM_PATH']
 
     # Override RUBY_ENGINE (we can bundle from MRI for JRuby)
     Gem.platforms = [Gem::Platform::RUBY, Gem::Platform.new("universal-dalvik-#{sdk_level}"), Gem::Platform.new('universal-java')]
-    Gem.paths = {'GEM_HOME' => BUNDLE_PATH, 'GEM_PATH' => BUNDLE_PATH}
+    ENV['GEM_HOME'] = BUNDLE_PATH
+    ENV['GEM_PATH'] = BUNDLE_PATH
     old_verbose, $VERBOSE = $VERBOSE, nil
     begin
       Object.const_set('RUBY_ENGINE', 'jruby')
     ensure
       $VERBOSE = old_verbose
     end
-
     ENV['BUNDLE_GEMFILE'] = GEM_FILE
+
     Bundler.ui = Bundler::UI::Shell.new
     Bundler.bundle_path = Pathname.new BUNDLE_PATH
     definition = Bundler.definition
@@ -432,7 +434,8 @@ file BUNDLE_JAR => [GEM_FILE, GEM_LOCK_FILE] do
       $VERBOSE = old_verbose
     end
     Gem.platforms = platforms
-    Gem.paths = gem_paths['GEM_PATH']
+    ENV['GEM_HOME'] = env_home
+    ENV['GEM_PATH'] = env_path
   else
     # Bundler.settings[:platform] = Gem::Platform::DALVIK
     sh "bundle install --gemfile #{GEM_FILE} --path=#{BUNDLE_PATH} --platform=dalvik#{sdk_level}"
@@ -683,8 +686,8 @@ end
 def build_apk(t, release)
   apk_file = release ? RELEASE_APK_FILE : APK_FILE
   if File.exist?(apk_file)
-    changed_prereqs = t.prerequisites.select do |p|
-      File.file?(p) && !Dir[p].empty? && Dir[p].map { |f| File.mtime(f) }.max > File.mtime(apk_file)
+    changed_prereqs = t.prerequisites.select do |pr|
+      File.file?(pr) && !Dir[pr].empty? && Dir[pr].map { |f| File.mtime(f) }.max >= File.mtime(apk_file)
     end
     return false if changed_prereqs.empty?
     changed_prereqs.each { |f| puts "#{f} changed." }

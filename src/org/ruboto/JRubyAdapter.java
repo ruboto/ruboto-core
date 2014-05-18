@@ -11,6 +11,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.os.Build;
 import android.os.Environment;
 import dalvik.system.PathClassLoader;
 
@@ -134,8 +135,8 @@ public class JRubyAdapter {
             Log.d("Setting up JRuby runtime (" + (isDebugBuild ? "DEBUG" : "RELEASE") + ")");
             System.setProperty("jruby.backtrace.style", "normal"); // normal raw full mri
             System.setProperty("jruby.bytecode.version", "1.6");
-            // BEGIN Ruboto RubyVersion
-            // System.setProperty("jruby.compat.version", "RUBY2_0"); // RUBY1_9 is the default in JRuby 1.7
+// BEGIN Ruboto RubyVersion
+  // System.setProperty("jruby.compat.version", "RUBY2_0"); // RUBY1_9 is the default in JRuby 1.7
             // END Ruboto RubyVersion
             // System.setProperty("jruby.compile.backend", "DALVIK");
             System.setProperty("jruby.compile.mode", "OFF"); // OFF OFFIR JITIR? FORCE FORCEIR
@@ -156,6 +157,18 @@ public class JRubyAdapter {
             System.setProperty("jruby.ji.proxyClassFactory", "org.ruboto.DalvikProxyClassFactory");
             System.setProperty("jruby.ji.upper.case.package.name.allowed", "true");
             System.setProperty("jruby.class.cache.path", appContext.getDir("dex", 0).getAbsolutePath());
+
+            // FIXME(uwe): Simplify when we stop supporting android-15
+            if (Build.VERSION.SDK_INT >= 16) {
+                DexDex.debug = true;
+                DexDex.validateClassPath(appContext);
+                while (DexDex.dexOptRequired) {
+                    System.out.println("Waiting for class loader setup...");
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException ie) {}
+                }
+            }
 
             ClassLoader classLoader;
             Class<?> scriptingContainerClass;

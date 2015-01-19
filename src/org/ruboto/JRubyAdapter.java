@@ -135,8 +135,8 @@ public class JRubyAdapter {
             Log.d("Setting up JRuby runtime (" + (isDebugBuild ? "DEBUG" : "RELEASE") + ")");
             System.setProperty("jruby.backtrace.style", "normal"); // normal raw full mri
             System.setProperty("jruby.bytecode.version", "1.6");
-// BEGIN Ruboto RubyVersion
-  // System.setProperty("jruby.compat.version", "RUBY2_0"); // RUBY1_9 is the default in JRuby 1.7
+            // BEGIN Ruboto RubyVersion
+            // System.setProperty("jruby.compat.version", "RUBY2_0"); // RUBY1_9 is the default in JRuby 1.7
             // END Ruboto RubyVersion
             // System.setProperty("jruby.compile.backend", "DALVIK");
             System.setProperty("jruby.compile.mode", "OFF"); // OFF OFFIR JITIR? FORCE FORCEIR
@@ -157,6 +157,7 @@ public class JRubyAdapter {
             System.setProperty("jruby.ji.proxyClassFactory", "org.ruboto.DalvikProxyClassFactory");
             System.setProperty("jruby.ji.upper.case.package.name.allowed", "true");
             System.setProperty("jruby.class.cache.path", appContext.getDir("dex", 0).getAbsolutePath());
+            System.setProperty("java.io.tmpdir", appContext.getCacheDir().getAbsolutePath());
 
             // FIXME(uwe): Simplify when we stop supporting android-15
             if (Build.VERSION.SDK_INT >= 16) {
@@ -253,6 +254,9 @@ public class JRubyAdapter {
                     rubyInstanceConfigClass.getMethod("setError", PrintStream.class).invoke(config, output);
                 }
 
+                System.out.println("Ruby version: " + rubyInstanceConfigClass
+                        .getMethod("getCompatVersion").invoke(config));
+
                 // This will become the global runtime and be used by our ScriptingContainer
                 rubyClass.getMethod("newInstance", rubyInstanceConfigClass).invoke(null, config);
 
@@ -278,18 +282,30 @@ public class JRubyAdapter {
 
                 Thread.currentThread().setContextClassLoader(classLoader);
 
+                String scriptsDir = scriptsDirName(appContext);
+                addLoadPath(scriptsDir);
                 if (appContext.getFilesDir() != null) {
                     String defaultCurrentDir = appContext.getFilesDir().getPath();
                     Log.d("Setting JRuby current directory to " + defaultCurrentDir);
                     callScriptingContainerMethod(Void.class, "setCurrentDirectory", defaultCurrentDir);
                 } else {
                     Log.e("Unable to find app files dir!");
+                    if (new File(scriptsDir).exists()) {
+                        Log.d("Changing JRuby current directory to " + scriptsDir);
+                        callScriptingContainerMethod(Void.class, "setCurrentDirectory", scriptsDir);
+                    }
                 }
 
-                addLoadPath(scriptsDirName(appContext));
                 put("$package_name", appContext.getPackageName());
 
                 runScriptlet("::RUBOTO_JAVA_PROXIES = {}");
+
+                System.out.println("JRuby version: " + Class.forName("org.jruby.runtime.Constants", true, scriptingContainerClass.getClassLoader())
+                        .getDeclaredField("VERSION").get(String.class));
+
+                // TODO(uwe):  Add a way to display startup progress.
+                put("$application_context", appContext.getApplicationContext());
+                runScriptlet("begin\n  require 'environment'\nrescue LoadError => e\n  puts e\nend");
 
                 initialized = true;
             } catch (ClassNotFoundException e) {
@@ -305,6 +321,8 @@ public class JRubyAdapter {
             } catch (InvocationTargetException e) {
                 handleInitException(e);
             } catch (NoSuchMethodException e) {
+                handleInitException(e);
+            } catch (NoSuchFieldException e) {
                 handleInitException(e);
             }
         }
@@ -324,8 +342,6 @@ public class JRubyAdapter {
             Log.i("Added directory to load path: " + scriptsDir);
             Script.addDir(scriptsDir);
             runScriptlet("$:.unshift '" + scriptsDir + "' ; $:.uniq!");
-            Log.d("Changing JRuby current directory to " + scriptsDir);
-            callScriptingContainerMethod(Void.class, "setCurrentDirectory", scriptsDir);
             return true;
         } else {
             Log.i("Extra scripts dir not present: " + scriptsDir);
@@ -381,7 +397,8 @@ public class JRubyAdapter {
         //try {
         //    t.printStackTrace(output);
         //} catch (NullPointerException npe) {
-            // TODO(uwe): printStackTrace should not fail
+            // TODO(uwe): t.printStackTrace() should not fail
+            System.err.println(t.getClass().getName() + ": " + t);
             for (java.lang.StackTraceElement ste : t.getStackTrace()) {
                 output.append(ste.toString() + "\n");
             }

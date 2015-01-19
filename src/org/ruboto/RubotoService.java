@@ -9,8 +9,25 @@ public class RubotoService extends android.app.Service implements org.ruboto.Rub
      * Called at the start of onCreate() to prepare the Activity.
      */
     private void preOnCreate() {
-        System.out.println("RubotoService onCreate(): " + getClass().getName());
-        getScriptInfo().setRubyClassName(getClass().getSimpleName());
+        if (!getClass().getSimpleName().equals("RubotoService")) {
+          System.out.println("RubotoService preOnCreate(): " + getClass().getName());
+          getScriptInfo().setRubyClassName(getClass().getSimpleName());
+          JRubyAdapter.setUpJRuby(this);
+        }
+    }
+
+    private void preOnStartCommand(android.content.Intent intent) {
+        if (getClass().getSimpleName().equals("RubotoService")) {
+          System.out.println("RubotoService preOnStartCommand(): " + getClass().getName());
+          scriptInfo.setFromIntent(intent);
+        }
+    }
+
+    private void preOnBind(android.content.Intent intent) {
+        if (getClass().getSimpleName().equals("RubotoService")) {
+          System.out.println("RubotoService preOnBind(): " + getClass().getName());
+          scriptInfo.setFromIntent(intent);
+        }
     }
 
     private final ScriptInfo scriptInfo = new ScriptInfo();
@@ -22,9 +39,11 @@ public class RubotoService extends android.app.Service implements org.ruboto.Rub
      *
      *  Generated Methods
      */
+
   public android.os.IBinder onBind(android.content.Intent intent) {
     if (ScriptLoader.isCalledFromJRuby()) return null;
-    if (JRubyAdapter.isInitialized() && scriptInfo.isReadyToLoad()) {
+    preOnBind(intent);
+if (JRubyAdapter.isInitialized() && scriptInfo.isReadyToLoad()) {
         ScriptLoader.loadScript(this);
     } else {
         return null;
@@ -72,7 +91,8 @@ public class RubotoService extends android.app.Service implements org.ruboto.Rub
 
   public void onCreate() {
     if (ScriptLoader.isCalledFromJRuby()) {super.onCreate(); return;}
-    preOnCreate();if (JRubyAdapter.isInitialized() && scriptInfo.isReadyToLoad()) {
+    preOnCreate();
+if (JRubyAdapter.isInitialized() && scriptInfo.isReadyToLoad()) {
         ScriptLoader.loadScript(this);
     } else {
         {super.onCreate(); return;}
@@ -190,7 +210,8 @@ public class RubotoService extends android.app.Service implements org.ruboto.Rub
 
   public int onStartCommand(android.content.Intent intent, int flags, int startId) {
     if (ScriptLoader.isCalledFromJRuby()) return super.onStartCommand(intent, flags, startId);
-    if (JRubyAdapter.isInitialized() && scriptInfo.isReadyToLoad()) {
+    preOnStartCommand(intent);
+if (JRubyAdapter.isInitialized() && scriptInfo.isReadyToLoad()) {
         ScriptLoader.loadScript(this);
     } else {
         return super.onStartCommand(intent, flags, startId);

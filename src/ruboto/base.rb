@@ -11,18 +11,27 @@ require 'java'
 # Create convenience method for top-level android package so we do not need to prefix with 'Java::'.
 module Kernel
   def android
-    JavaUtilities.get_package_module_dot_format('android')
+    Java::Android
   end
 
   alias :old_method_missing :method_missing
   def method_missing(method, *args, &block)
-    return @ruboto_java_instance.send(method, *args, &block) if @ruboto_java_instance && @ruboto_java_instance.respond_to?(method)
+    if @ruboto_java_instance && @ruboto_java_instance.respond_to?(method)
+      return @ruboto_java_instance.send(method, *args, &block)
+    end
     old_method_missing(method, *args, &block)
   end
 end
 
-java_import 'android.R'
-AndroidIds = JavaUtilities.get_proxy_class('android.R$id')
+class Java::Android::R
+  def self.attr
+    JavaUtilities.get_proxy_class("android.R$attr")
+  end
+end
+
+# FIXME(uwe):  DEPRECATED(2014-07-29):  Remove since we can access the value directly with "android.R.id", ie. "android.R.id.text1"
+AndroidIds = android.R.id
+# EMXIF
 
 module Ruboto
   CLASS_NAME_KEY = org.ruboto.ScriptInfo::CLASS_NAME_KEY

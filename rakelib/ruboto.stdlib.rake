@@ -52,7 +52,9 @@ def reconfigure_jruby_stdlib
   end
   require 'jruby-jars'
 
-  log_action("Copying #{JRubyJars::stdlib_jar_path} to libs") { FileUtils.cp JRubyJars::stdlib_jar_path, "libs/jruby-stdlib-#{JRubyJars::VERSION}.jar" }
+  log_action("Copying #{JRubyJars::stdlib_jar_path} to libs") do
+    FileUtils.cp JRubyJars::stdlib_jar_path, "libs/jruby-stdlib-#{JRubyJars::VERSION}.jar"
+  end
   StdlibDependencies.load('rakelib/ruboto.stdlib.yml')
 
   Dir.chdir 'libs' do
@@ -159,6 +161,16 @@ def remove_unneeded_parts_of_stdlib
       end
       print "excluded #{excluded_stdlibs.join(' ')}..."
     end
+
+    # Corrects bug in krypt that loads FFI.
+    # Only affects JRuby 1.7.11, 1.7.12, and 9000 (until fixed).
+    # FIXME(uwe):  Remove when we stop supporting JRuby 1.7.11 and 1.7.12
+    Dir['**/provider.rb'].each do |f|
+      print "patching #{f}..."
+      File.write(f, File.read(f).sub(%r{require_relative 'provider/ffi'}, "# require_relative 'provider/ffi'"))
+    end
+    # EMXIF
+
   end
 end
 
@@ -244,7 +256,7 @@ def cleanup_jars
           # add the new one used by jopenssl
           java.security.Security.addProvider( org.bouncycastle.jce.provider.BouncyCastleProvider.new )
         END_CODE
-      elsif j =~ %r{kryptprovider.jar$}
+      elsif j =~ %r{kryptproviderjdk.jar$}
         jar_load_code = <<-END_CODE
           require 'jruby'
           puts 'Starting JRuby KryptproviderjdkService Service'

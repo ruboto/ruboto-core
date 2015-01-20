@@ -234,4 +234,50 @@ if (JRubyAdapter.isInitialized() && scriptInfo.isReadyToLoad()) {
     }
   }
 
+  public void onTaskRemoved(android.content.Intent arg0) {
+    if (ScriptLoader.isCalledFromJRuby()) {super.onTaskRemoved(arg0); return;}
+    if (!JRubyAdapter.isInitialized()) {
+      Log.i("Method called before JRuby runtime was initialized: RubotoService#onTaskRemoved");
+      {super.onTaskRemoved(arg0); return;}
+    }
+    String rubyClassName = scriptInfo.getRubyClassName();
+    if (rubyClassName == null) {super.onTaskRemoved(arg0); return;}
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onTaskRemoved}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onTaskRemoved", arg0);
+    } else {
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_task_removed}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_task_removed", arg0);
+      } else {
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_task_removed}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_task_removed", arg0);
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onTaskRemoved", arg0);
+        }
+      }
+    }
+  }
+
+  public void onTrimMemory(int arg0) {
+    if (ScriptLoader.isCalledFromJRuby()) {super.onTrimMemory(arg0); return;}
+    if (!JRubyAdapter.isInitialized()) {
+      Log.i("Method called before JRuby runtime was initialized: RubotoService#onTrimMemory");
+      {super.onTrimMemory(arg0); return;}
+    }
+    String rubyClassName = scriptInfo.getRubyClassName();
+    if (rubyClassName == null) {super.onTrimMemory(arg0); return;}
+    if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :onTrimMemory}")) {
+      JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onTrimMemory", arg0);
+    } else {
+      if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(false).any?{|m| m.to_sym == :on_trim_memory}")) {
+        JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_trim_memory", arg0);
+      } else {
+        if ((Boolean)JRubyAdapter.runScriptlet(rubyClassName + ".instance_methods(true).any?{|m| m.to_sym == :on_trim_memory}")) {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "on_trim_memory", arg0);
+        } else {
+          JRubyAdapter.runRubyMethod(scriptInfo.getRubyInstance(), "onTrimMemory", arg0);
+        }
+      }
+    }
+  }
+
 }

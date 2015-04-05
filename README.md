@@ -10,6 +10,14 @@ If you **don't** want to use this shared app, just include JRuby in your own app
 by generating it with the ```--with-jruby``` option or adding it later with the
 ```ruboto gen jruby``` command.
 
+## New in version 1.0.5
+
+* Updated to JRuby 1.7.19
+* Updated to Ruboto 1.3.0
+* Updated to ActiveRecord 4.1.10
+* Updated to activerecord-jdbc-adapter 1.3.15
+* Added thread_safe gem
+
 ## New in version 1.0.2
 
 * Fixed bug prohibiting installation on Android 2.3.

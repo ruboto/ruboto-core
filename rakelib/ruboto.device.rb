@@ -11,7 +11,7 @@ UPDATE_MARKER_FILE = File.join(PROJECT_DIR, 'bin', 'LAST_UPDATE')
 # Return true if the package is installed and is identical to the local package.
 # Return false if the package is installed, but differs from the local package.
 # Return nil if the package is not installed.
-def package_installed?(package_name = package, apk_file = APK_FILE)
+def package_installed?(package_name, apk_file)
   loop do
     path_line = `adb shell pm path #{package_name}`.chomp
     path_line.gsub! /^WARNING:.*$/, ''
@@ -98,7 +98,7 @@ def install_apk(package, apk_file)
       puts "'adb install' returned an unknown error: (#$?) #{$1 ? "[#$1}]" : output}."
       puts "Uninstalling #{package} and retrying install."
     end
-    uninstall_apk
+    uninstall_apk(package, apk_file)
   else
     # Package not installed.
     sh "adb shell date -s #{Time.now.strftime '%Y%m%d.%H%M%S'}"
@@ -124,15 +124,14 @@ def install_apk(package, apk_file)
   end
   puts output
   raise "Install failed (#{$?}) #{$1 ? "[#$1}]" : output}" if $? != 0 || output =~ failure_pattern || output !~ success_pattern
-  clear_update(apk_file)
+  clear_update(package, apk_file)
 end
 
-# FIXME(uwe): Remove default argument to make method self-contained.
-def uninstall_apk(package_name = package)
-  return if package_installed?.nil?
+def uninstall_apk(package_name, apk_file)
+  return if package_installed?(package_name, apk_file).nil?
   puts "Uninstalling package #{package_name}"
   system "adb uninstall #{package_name}"
-  if $? != 0 && package_installed?
+  if $? != 0 && package_installed?(package, apk_file)
     puts "Uninstall failed exit code #{$?}"
     exit $?
   end

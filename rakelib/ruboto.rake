@@ -223,7 +223,7 @@ desc 'Restart the application'
 task restart: [:stop, :start]
 
 task :uninstall do
-  uninstall_apk
+  uninstall_apk(package, APK_FILE)
 end
 
 file PROJECT_PROPS_FILE
@@ -552,7 +552,7 @@ file APK_FILE => APK_DEPENDENCIES do |t|
   build_apk(t, false)
 end
 
-MINIMUM_DX_HEAP_SIZE = 4096
+MINIMUM_DX_HEAP_SIZE = (ENV['DX_HEAP_SIZE'] && ENV['DX_HEAP_SIZE'].to_i) || 4096
 task :patch_dex do
   DX_FILENAMES.each do |dx_filename|
     new_dx_content = File.read(dx_filename).dup
@@ -579,7 +579,7 @@ namespace :update_scripts do
   desc 'Copy scripts to emulator and restart the app'
   task restart: QUICK_APK_DEPENDENCIES do |t|
     if build_apk(t, false) || !stop_app
-      install_apk
+      install_apk(package, APK_FILE)
     else
       update_scripts(package)
     end
@@ -589,7 +589,7 @@ namespace :update_scripts do
   desc 'Copy scripts to emulator and restart the app'
   task start: QUICK_APK_DEPENDENCIES do |t|
     if build_apk(t, false)
-      install_apk
+      install_apk(package, APK_FILE)
     else
       update_scripts(package)
     end
@@ -599,7 +599,7 @@ namespace :update_scripts do
   desc 'Copy scripts to emulator and reload'
   task reload: QUICK_APK_DEPENDENCIES do |t|
     if build_apk(t, false)
-      install_apk
+      install_apk(package, APK_FILE)
       start_app
     else
       scripts = update_scripts(package)
@@ -705,6 +705,14 @@ file BUNDLE_JAR => [GEM_FILE, GEM_LOCK_FILE] do
     ENV['GEM_PATH'] = env_path
   end
 
+  GEM_PATH_PATTERN = /^PATH\s*remote:\s*(.*)$\s*specs:\s*(.*)\s+\(.+\)$/
+  File.read(GEM_LOCK_FILE).scan(GEM_PATH_PATTERN).each do |path, name|
+    FileUtils.mkpath "#{BUNDLE_PATH}/gems"
+    FileUtils.rm_rf "#{BUNDLE_PATH}/gems/#{name}"
+    FileUtils.cp_r File.expand_path(path, File.dirname(GEM_FILE)),
+        "#{BUNDLE_PATH}/gems"
+  end
+
   gem_paths = Dir["#{BUNDLE_PATH}/gems"]
   raise 'Gem path not found' if gem_paths.empty?
   raise "Found multiple gem paths: #{gem_paths}" if gem_paths.size > 1
@@ -731,28 +739,6 @@ file BUNDLE_JAR => [GEM_FILE, GEM_LOCK_FILE] do
           end
         end
       end
-    end
-  end
-
-  # Remove duplicate files
-  Dir.chdir gem_path do
-    scanned_files = []
-    source_files = RUBY_SOURCE_FILES.map { |f| f.gsub("#{PROJECT_DIR}/src/", '') }
-    Dir['*/lib/**/*'].each do |f|
-      next if File.directory? f
-      raise 'Malformed file name' unless f =~ %r{^(.*?)/lib/(.*)$}
-      gem_name, lib_file = $1, $2
-      if (existing_file = scanned_files.find { |sf| sf =~ %r{(.*?)/lib/#{lib_file}} })
-        puts "Overwriting duplicate file #{lib_file} in gem #{$1} with file in #{gem_name}"
-        FileUtils.rm existing_file
-        scanned_files.delete existing_file
-      elsif source_files.include? lib_file
-        puts "Removing duplicate file #{lib_file} in gem #{gem_name}"
-        puts "Already present in project source src/#{lib_file}"
-        FileUtils.rm f
-        next
-      end
-      scanned_files << f
     end
   end
 
@@ -815,6 +801,20 @@ puts 'Starting JSON Parser Service'
 public
 Java::json.ext.ParserService.new.basicLoad(JRuby.runtime)
             END_CODE
+          elsif jar =~ %r{thread_safe/jruby_cache_backend.jar$}
+            jar_load_code = <<-END_CODE
+require 'jruby'
+puts 'Starting threadsafe JRubyCacheBackend Service'
+public
+begin
+  Java::thread_safe.JrubyCacheBackendService.new.basicLoad(JRuby.runtime)
+rescue Exception
+  puts "Exception starting threadsafe JRubyCacheBackend Service"
+  puts $!
+  puts $!.backtrace.join("\n")
+  raise
+end
+            END_CODE
           else
             jar_load_code = ''
           end
@@ -826,7 +826,45 @@ Java::json.ext.ParserService.new.basicLoad(JRuby.runtime)
           end
           FileUtils.rm_f(jar)
         end
+
+        # FIXME(uwe):  Issue # 705 https://github.com/ruboto/ruboto/issues/705
+        # FIXME(uwe):  Use the files from the bundle instead of stdlib.
+        if (stdlib_jar = Dir["#{PROJECT_DIR}/libs/jruby-stdlib-*.jar"].sort.last)
+          stdlib_files = `jar tf #{stdlib_jar}`.lines.map(&:chomp)
+          Dir['**/*'].each do |f|
+            if stdlib_files.include? f
+              puts "Removing duplicate file #{f} in gem #{gem_lib}."
+              puts 'Already present in the Ruby Standard Library.'
+              FileUtils.rm f
+            end
+          end
+        end
+        # EMXIF
+
       end
+    end
+  end
+
+  # Remove duplicate files
+  Dir.chdir gem_path do
+    scanned_files = []
+    source_files = RUBY_SOURCE_FILES.map { |f| f.gsub("#{PROJECT_DIR}/src/", '') }
+    # FIXME(uwe):  The gems should be loaded in the loading order defined by the Gemfile.apk(.lock)
+    Dir['*/lib/**/*'].sort.each do |f|
+      next if File.directory? f
+      raise 'Malformed file name' unless f =~ %r{^(.*?)/lib/(.*)$}
+      gem_name, lib_file = $1, $2
+      if (existing_file = scanned_files.find { |sf| sf =~ %r{(.*?)/lib/#{lib_file}} })
+        puts "Overwriting duplicate file #{lib_file} in gem #{$1} with file in #{gem_name}"
+        FileUtils.rm existing_file
+        scanned_files.delete existing_file
+      elsif source_files.include? lib_file
+        puts "Removing duplicate file #{lib_file} in gem #{gem_name}"
+        puts "Already present in project source src/#{lib_file}"
+        FileUtils.rm f
+        next
+      end
+      scanned_files << f
     end
   end
 
@@ -853,6 +891,7 @@ task :log, [:filter] do |t, args|
     android_4_2_noise_regex = /Unexpected value from nativeGetEnabledTags/
     pid_regex = nil
     logcat.each_line do |line|
+      line.force_encoding(Encoding::BINARY)
       # FIXME(uwe): Remove when we stop supporting Ancdroid 4.2
       next if line =~ android_4_2_noise_regex
       # EMXIF

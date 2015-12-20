@@ -132,6 +132,7 @@ public class JRubyAdapter {
             // byte[] arrayForHeapAllocation = new byte[13 * 1024 * 1024];
             // arrayForHeapAllocation = null;
             // END Ruboto HeapAlloc
+            Log.d("Memory allocation OK");
             setDebugBuild(appContext);
             Log.d("Setting up JRuby runtime (" + (isDebugBuild ? "DEBUG" : "RELEASE") + ")");
             System.setProperty("jruby.backtrace.style", "normal"); // normal raw full mri
@@ -210,19 +211,20 @@ public class JRubyAdapter {
             }
 
             try {
+                String jrubyVersion = (String)
+                        Class.forName("org.jruby.runtime.Constants", true,
+                                scriptingContainerClass.getClassLoader())
+                        .getDeclaredField("VERSION").get(String.class);
+                System.out.println("JRuby version: " + jrubyVersion);
+
                 //////////////////////////////////
                 //
                 // Set jruby.home
                 //
 
-                String jrubyHome = "file:" + apkName + "!/jruby.home";
-
-                // FIXME(uwe): Remove when we stop supporting RubotoCore 0.4.7
-                Log.i("RUBOTO_CORE_VERSION_NAME: " + RUBOTO_CORE_VERSION_NAME);
-                if (RUBOTO_CORE_VERSION_NAME != null &&
-                        (RUBOTO_CORE_VERSION_NAME.equals("0.4.7") || RUBOTO_CORE_VERSION_NAME.equals("0.4.8"))) {
-                    jrubyHome = "file:" + apkName + "!";
-                }
+                // FIXME(uwe): Simplify when we stop support for JRuby 1.7.x
+                final String jrubyHome = (jrubyVersion.startsWith("9.0.0.0") ?
+                        "jar:" : "file:") + apkName + "!/jruby.home";
                 // EMXIF
 
                 Log.i("Setting JRUBY_HOME: " + jrubyHome);
@@ -301,12 +303,10 @@ public class JRubyAdapter {
 
                 runScriptlet("::RUBOTO_JAVA_PROXIES = {}");
 
-                System.out.println("JRuby version: " + Class.forName("org.jruby.runtime.Constants", true, scriptingContainerClass.getClassLoader())
-                        .getDeclaredField("VERSION").get(String.class));
-
                 // TODO(uwe):  Add a way to display startup progress.
                 put("$application_context", appContext.getApplicationContext());
                 runScriptlet("begin\n  require 'environment'\nrescue LoadError => e\n  puts e\nend");
+                // runScriptlet("begin\n  require 'environment'\nrescue LoadError => e\n  java.lang.System.out.println(e)\nend");
 
                 initialized = true;
             } catch (ClassNotFoundException e) {

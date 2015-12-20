@@ -227,6 +227,7 @@ task :uninstall do
 end
 
 file PROJECT_PROPS_FILE
+file File.basename(MANIFEST_FILE) => MANIFEST_FILE
 file MANIFEST_FILE => PROJECT_PROPS_FILE do
   old_manifest = File.read(MANIFEST_FILE)
   manifest = old_manifest.dup
@@ -250,6 +251,7 @@ end
 file RUBOTO_CONFIG_FILE
 
 task build_xml: BUILD_XML_FILE
+task File.basename(BUILD_XML_FILE) => BUILD_XML_FILE
 file BUILD_XML_FILE => RUBOTO_CONFIG_FILE do
   puts 'patching build.xml'
   ant_script = File.read(BUILD_XML_FILE)
@@ -468,7 +470,7 @@ file BUILD_XML_FILE => RUBOTO_CONFIG_FILE do
 
   ant_script.gsub!(/\s*#{start_marker}.*?#{end_marker}\s*/m, '')
   # FIXME(uwe): Remove condition when we stop supporting Android 4.0 and older.
-  if sdk_level >= 16
+  if sdk_level >= 15
     unless ant_script.gsub!(/\s*(<\/project>)/, "\n\n#{dx_override}\n\n\\1")
       raise 'Bad ANT script'
     end
@@ -542,6 +544,7 @@ file RUBOTO_ACTIVITY_FILE => RUBY_ACTIVITY_SOURCE_FILES do |task|
   end
   new_source = "#{intro}#{commented_methods.join("\n")}\n}\n"
   if new_source != original_source
+    puts "Regenerating #{File.basename RUBOTO_ACTIVITY_FILE} with active methods"
     File.open(RUBOTO_ACTIVITY_FILE, 'w') { |f| f << new_source }
   end
 end
@@ -721,7 +724,11 @@ file BUNDLE_JAR => [GEM_FILE, GEM_LOCK_FILE] do
 
   if package != 'org.ruboto.core' && JRUBY_JARS.none? { |f| File.exists? f }
     Dir.chdir gem_path do
-      Dir['{activerecord-jdbc-adapter,jruby-openssl}-*'].each do |g|
+      # FIXME(uwe):  Fetch this list from the ruboto-core Gemfile.apk.lock?
+      ruboto_core_extension_gems =
+          %w{activerecord activerecord-jdbc-adapter jruby-openssl json thread_safe}
+      Dir['*'].each do |g|
+        next unless g =~ /#{ruboto_core_extension_gems.join('|')}-[^-]+(-java)$/
         puts "Removing #{g} gem since it is included in the RubotoCore platform apk."
         FileUtils.rm_rf g
       end
@@ -879,15 +886,16 @@ desc 'Log activity execution, accepts optional logcat filter'
 task :log, [:filter] do |t, args|
   puts '--- clearing logcat'
   `adb logcat -c`
-  filter = args[:filter] ? args[:filter] : '' # filter log with filter-specs like TAG:LEVEL TAG:LEVEL ... '*:S'
+  filter = args[:filter] ? args[:filter] : ''         # filter log with filter-specs like TAG:LEVEL TAG:LEVEL ... '*:S'
   logcat_cmd = "adb logcat ActivityManager #{filter}" # we always need ActivityManager logging to catch activity start
   puts "--- starting logcat: #{logcat_cmd}"
   IO.popen logcat_cmd do |logcat|
     puts "--- waiting for activity #{package}/.#{main_activity} ..."
     activity_started = false
-    started_regex = Regexp.new "^\\I/ActivityManager.+Start proc #{package} for activity #{package}/\\.#{main_activity}: pid=(?<pid>\\d+)"
-    restarted_regex = Regexp.new "^\\I/ActivityManager.+START u0 {cmp=#{package}/org.ruboto.RubotoActivity.+} from pid (?<pid>\\d+)"
-    related_regex = Regexp.new "#{package}|#{main_activity}"
+    started_regex_android_5_1 = Regexp.new "^\\I/ActivityManager.+Start proc (?<pid>\\d+):#{package}/.+ for activity #{package}/\\.#{main_activity}"
+    started_regex =             Regexp.new "^\\I/ActivityManager.+Start proc #{package} for activity #{package}/\\.#{main_activity}: pid=(?<pid>\\d+)"
+    restarted_regex =           Regexp.new "^\\I/ActivityManager.+START u0 {cmp=#{package}/org.ruboto.RubotoActivity.+} from pid (?<pid>\\d+)"
+    related_regex =             Regexp.new "#{package}|#{main_activity}"
     android_4_2_noise_regex = /Unexpected value from nativeGetEnabledTags/
     pid_regex = nil
     logcat.each_line do |line|
@@ -895,7 +903,7 @@ task :log, [:filter] do |t, args|
       # FIXME(uwe): Remove when we stop supporting Ancdroid 4.2
       next if line =~ android_4_2_noise_regex
       # EMXIF
-      if (activity_start_match = started_regex.match(line) || restarted_regex.match(line))
+      if (activity_start_match = started_regex.match(line) || started_regex_android_5_1.match(line) || restarted_regex.match(line))
         activity_started = true
         pid = activity_start_match[:pid]
         pid_regex = Regexp.new "\\( *#{pid}\\): "
@@ -912,9 +920,7 @@ end
 # Methods
 
 def sdk_level
-  # FIXME(uwe):  Remove special case 'L' when Android L is released.
-  level = File.read(PROJECT_PROPS_FILE).scan(/(?:target=android-)(\d+|L)/)[0][0].to_i
-  level == 0 ? 21 : level
+  File.read(PROJECT_PROPS_FILE).scan(/(?:target=android-)(\d+)/)[0][0].to_i
 end
 
 def strings(name)
@@ -978,7 +984,7 @@ end
 
 # Triggers reload of updated scripts and restart of the current activity
 def reload_scripts(scripts)
-  s = scripts.map { |s| s.gsub(/[&;]/) { |m| "&#{m[0]}" } }.join('\;')
+  s = scripts.map { |s| s.gsub(/[&;]/) { |m| "&#{m[0]}" } }.join(';')
   cmd = %Q{adb shell am broadcast -a android.intent.action.VIEW -e reload '#{s}'}
   puts cmd
   system cmd

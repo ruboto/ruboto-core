@@ -10,6 +10,14 @@ If you **don't** want to use this shared app, just include JRuby in your own app
 by generating it with the ```--with-jruby``` option or adding it later with the
 ```ruboto gen jruby``` command.
 
+## New in version 1.0.6
+
+* Updated to JRuby 1.7.23
+* Updated to Ruboto 1.3.2
+* Updated to ActiveRecord 4.2.5
+* Updated to activerecord-jdbc-adapter 1.3.19
+* Added jruby-openssl gem
+
 ## New in version 1.0.5
 
 * Updated to JRuby 1.7.19

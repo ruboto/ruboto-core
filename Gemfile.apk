@@ -2,4 +2,4 @@ source 'http://rubygems.org/'
 
 gem 'activerecord', '~>4.2.5'
 gem 'activerecord-jdbc-adapter'
-gem 'jruby-openssl'
+# gem 'jruby-openssl'

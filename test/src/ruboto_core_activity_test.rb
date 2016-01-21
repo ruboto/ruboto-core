@@ -13,3 +13,11 @@ end
 test('initial setup') do |activity|
   assert_equal 'Welcome to Ruboto', @text_view.text
 end
+
+test('json') do |activity|
+  require 'json'
+end
+
+test('json2') do |activity|
+  require 'json'
+end
